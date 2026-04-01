@@ -6,216 +6,161 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; transition: 0.3s; }
-        .live-panel.is-live { background: #fff5f5; border-color: #ff4d4d; box-shadow: 0 0 15px rgba(255, 77, 77, 0.2); }
-        .live-status-text { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; letter-spacing: 2px; margin-bottom: 10px; }
+        
+        /* AUTH STYLES */
+        #authContainer { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+        .auth-btn.outline { background: white; color: #222; border: 1px solid #222; }
+
+        /* LIVE PANEL */
+        .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; }
+        .live-panel.is-live { background: #fff5f5; border-color: #ff4d4d; }
+        .live-status-text { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; margin-bottom: 10px; }
         .live-panel.is-live .live-status-text { color: #ff4d4d; }
-        .btn-live { background: #222; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
-        .btn-live:hover { background: #444; }
-        .live-panel.is-live .btn-live { background: #ff4d4d; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        .form-section { border-bottom: 2px solid #eee; padding-bottom: 30px; margin-bottom: 30px; }
-        h1 { font-weight: 300; text-transform: uppercase; letter-spacing: 2px; text-align: center; margin-bottom: 30px; }
+        .btn-live { background: #222; color: white; border: none; padding: 12px 30px; border-radius: 25px; cursor: pointer; text-transform: uppercase; font-weight: bold; }
+        .live-panel.is-live .btn-live { background: #ff4d4d; }
+
+        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
         .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 200px; }
         label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; background: #fff; }
-        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; margin-top: 10px; text-transform: uppercase; }
-        .save-btn:hover { background: #d4af37; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 12px; }
-        th { background: #f9f9f9; color: #999; text-transform: uppercase; font-size: 10px; }
         .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         img.thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
-        .rarity-tag { font-size: 10px; font-weight: bold; color: #d4af37; text-transform: uppercase; }
-        .price-cost { color: #888; font-size: 11px; }
-        .price-retail { font-weight: bold; color: #2c7a7b; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div id="authContainer">
+    <h2 style="color:#d4af37">Creator Login</h2>
+    <div id="authError" style="color:red; margin-bottom:10px;"></div>
+    <input type="email" id="authEmail" class="auth-input" placeholder="Email">
+    <input type="password" id="authPassword" class="auth-input" placeholder="Password">
+    <button class="auth-btn" onclick="login()">Log In</button>
+    <button class="auth-btn outline" onclick="signup()">Sign Up</button>
+</div>
+
+<div class="container" id="appContainer" style="display: none;">
+    <div class="admin-header">
+        <h1>Inventory Manager</h1>
+        <button onclick="logout()" style="cursor:pointer">Log Out</button>
+    </div>
+
     <div class="live-panel" id="livePanel">
-        <div class="live-status-text" id="liveStatusText">Store Status: OFFLINE (Items Claimable)</div>
-        <button class="btn-live" id="liveToggleBtn" onclick="toggleLiveStatus()">Checking Status...</button>
+        <div class="live-status-text" id="liveStatusText">Store Status: OFFLINE</div>
+        <button class="btn-live" id="liveToggleBtn" onclick="toggleLiveStatus()">Toggle Live Status</button>
     </div>
 
     <div class="form-section">
-        <h1>Inventory Manager</h1>
         <div class="row">
             <div style="flex: 2;"><label>Item Name</label><input type="text" id="ItemName"></div>
-            <div>
-                <label>Category</label>
-                <select id="ItemCategory">
-                    <option value="Ring">Ring</option>
-                    <option value="Necklace">Necklace</option>
-                    <option value="Necklace Set">Necklace Set</option>
-                    <option value="Earrings">Earrings</option>
-                    <option value="Earring Set">Earring Set</option>
-                    <option value="Bracelet">Bracelet</option>
-                    <option value="Set">Set (Mixed)</option>
-                </select>
-            </div>
+            <div><label>Category</label><select id="ItemCategory"><option value="Ring">Ring</option><option value="Necklace">Necklace</option><option value="Earrings">Earrings</option><option value="Bracelet">Bracelet</option><option value="Set">Set</option></select></div>
         </div>
         <div class="row">
-            <div><label>Brand Name</label><input type="text" id="BrandName" value="Bomb Party"></div>
-            <div><label>Brand SKU</label><input type="text" id="BrandSku"></div>
-            <div><label>Collection (Type to Search)</label><input list="collectionOptions" id="Collection"><datalist id="collectionOptions"></datalist></div>
-        </div>
-        <div class="row">
-            <div>
-                <label>Plating</label>
-                <select id="Plating">
-                    <option value="Gold">Gold</option>
-                    <option value="Rose Gold">Rose Gold</option>
-                    <option value="Rhodium">Rhodium</option>
-                    <option value="Silver">Silver</option>
-                    <option value="Hematite">Hematite</option>
-                    <option value="Rose Gold/Rhodium">Rose Gold/Rhodium</option>
-                    <option value="Mixed">Mixed</option>
-                </select>
-            </div>
-            <div>
-                <label>Rarity / Edition</label>
-                <select id="Rarity">
-                    <option value="Collection">Collection Piece</option>
-                    <option value="Unicorn">Unicorn</option>
-                    <option value="Rare Unicorn">Rare Unicorn</option>
-                    <option value="Ultra Rare Unicorn">Ultra Rare Unicorn</option>
-                    <option value="Lillian's Choice">Lillian's Choice</option>
-                    <option value="Bella's Choice">Bella's Choice</option>
-                    <option value="Diamonds">Diamonds</option>
-                </select>
-            </div>
+            <div><label>Collection</label><input list="collectionOptions" id="Collection"><datalist id="collectionOptions"></datalist></div>
+            <div><label>Rarity</label><select id="Rarity"><option value="Collection">Collection Piece</option><option value="Unicorn">Unicorn</option><option value="Diamonds">Diamonds</option></select></div>
             <div><label>Stone</label><input type="text" id="Stone"></div>
         </div>
         <div class="row">
-            <div><label>Purchase Price (Cost) ($)</label><input type="number" id="PurchasePrice" step="0.01"></div>
-            <div><label>Retail Price (Sell) ($)</label><input type="number" id="Price" step="0.01"></div>
-            <div>
-                <label>Status</label>
-                <select id="Status">
-                    <option value="Available">Available</option>
-                    <option value="Sold">Sold</option>
-                    <option value="Paused">Paused</option>
-                    <option value="Pending">Pending</option>
-                </select>
-            </div>
-            <div><label>Photo</label><input type="file" id="ItemImage" accept="image/*"></div>
+            <div><label>Cost ($)</label><input type="number" id="PurchasePrice" step="0.01"></div>
+            <div><label>Retail ($)</label><input type="number" id="Price" step="0.01"></div>
+            <div><label>Photo</label><input type="file" id="ItemImage"></div>
         </div>
-        <label>Notes</label><textarea id="Notes" rows="2"></textarea>
         <button class="save-btn" id="saveBtn" onclick="uploadToSupabase()">Add to Collection</button>
     </div>
 
-    <h2>Live Inventory</h2>
     <table id="inventoryTable">
-        <thead>
-            <tr><th>Photo</th><th>Item</th><th>Rarity</th><th>SKU</th><th>Stone/Plating</th><th>Collection</th><th>Cost / Retail</th><th>Action</th></tr>
-        </thead>
+        <thead><tr><th>Photo</th><th>Item</th><th>Rarity</th><th>Collection</th><th>Price</th><th>Action</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
 
 <script>
-    const myCollections = [
-        "Unknown", "Retro",
-        // --- 2023 ---
-        "Originals 2023", "Originals Kids 2023", "Sterling Club 2023", "Lux Diamonds 2023", "Luxe Layers 2023", "Luxe Bands 2023", "Luxe Hoops 2023", "Luxe Boutique 2023", "Delicates 2023", "Charming Hoops 2023", "Simply Studs 2023", "Simply Earring 2023", "Simply Necklace 2023", "Charmelier 2023", "Stack-a-Palooza 2023", "Zen 2023", "Atlantis 2023", "Celestial 2023", "Garden Party 2023", "January 2023 Birthday", "February 2023 Birthday", "March 2023 Birthday", "April 2023 Birthday", "May 2023 Birthday", "June 2023 Birthday", "July 2023 Birthday", "August 2023 Birthday", "September 2023 Birthday", "October 2023 Birthday", "November 2023 Birthday", "December 2023 Birthday", "Valentine's 2023", "Easter 2023", "Spring Stacks 2023", "Summer Stacks 2023", "Fall Stacks 2023", "Halloween Stacks 2023", "Wicked 2023", "Holiday Stacks 2023", "Jewel Candy Holiday 2023",
-        // --- 2024 ---
-        "Originals 2024", "Originals Kids 2024", "Sterling Club 2024", "Lux Diamonds 2024", "Luxe Layers 2024", "Luxe Bands 2024", "Luxe Hoops 2024", "Luxe Boutique 2024", "Delicates 2024", "Charming Hoops 2024", "Simply Studs 2024", "Simply Earring 2024", "Simply Necklace 2024", "Charmelier 2024", "Stack-a-Palooza 2024", "January 2024 Birthday", "February 2024 Birthday", "March 2024 Birthday", "April 2024 Birthday", "May 2024 Birthday", "June 2024 Birthday", "July 2024 Birthday", "August 2024 Birthday", "September 2024 Birthday", "October 2024 Birthday", "November 2024 Birthday", "December 2024 Birthday", "Valentine's 2024", "Easter 2024", "Mother's Day 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Halloween Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Jewel Candy Holiday 2024",
-        // --- 2025 ---
-        "Originals 2025", "Originals Kids 2025", "Sterling Club 2025", "Lux Diamonds 2025", "Luxe Layers 2025", "Luxe Bands 2025", "Luxe Hoops 2025", "Luxe Boutique 2025", "Delicates 2025", "Charming Hoops 2025", "Simply Studs 2025", "Simply Earring 2025", "Simply Necklace 2025", "Charmelier 2025", "Stack-a-Palooza 2025", "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday", "April 2025 Birthday", "May 2025 Birthday", "June 2025 Birthday", "July 2025 Birthday", "August 2025 Birthday", "September 2025 Birthday", "October 2025 Birthday", "November 2025 Birthday", "December 2025 Birthday", "Valentine's 2025", "Easter 2025", "Mother's Day 2025", "Spring Stacks 2025", "Summer Stacks 2025", "Fall Stacks 2025", "Halloween Stacks 2025", "Wicked 2025", "Holiday Stacks 2025", "Jewel Candy Holiday 2025",
-        // --- 2026 ---
-        "Originals 2026", "Originals Kids 2026", "Sterling Club 2026", "Lux Diamonds 2026", "Luxe Layers 2026", "Luxe Bands 2026", "Luxe Hoops 2026", "Luxe Boutique 2026", "Delicates 2026", "Charming Hoops 2026", "Simply Studs 2026", "Simply Earring 2026", "Simply Necklace 2026", "Charmelier 2026", "Stack-a-Palooza 2026", "January 2026 Birthday", "February 2026 Birthday", "March 2026 Birthday", "April 2026 Birthday", "May 2026 Birthday", "June 2026 Birthday", "July 2026 Birthday", "August 2026 Birthday", "September 2026 Birthday", "October 2026 Birthday", "November 2026 Birthday", "December 2026 Birthday", "Valentine's 2026", "Easter 2026", "Mother's Day 2026", "Spring Stacks 2026"
-    ];
-
     const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // CLEAN LIVE STATUS LOGIC
+    let currentUser = null;
     let isLive = false;
+
+    // --- AUTH ---
+    _supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            loadData();
+        } else {
+            document.getElementById('authContainer').style.display = 'block';
+            document.getElementById('appContainer').style.display = 'none';
+        }
+    });
+
+    async function login() {
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+        const { error } = await _supabase.auth.signInWithPassword({ email, password });
+        if (error) document.getElementById('authError').innerText = error.message;
+    }
+
+    async function signup() {
+        const email = document.getElementById('authEmail').value;
+        const password = document.getElementById('authPassword').value;
+        const { error } = await _supabase.auth.signUp({ email, password });
+        if (error) document.getElementById('authError').innerText = error.message;
+    }
+
+    async function logout() { await _supabase.auth.signOut(); }
+
+    // --- APP LOGIC ---
+    async function loadData() {
+        checkLiveStatus();
+        loadTable();
+    }
 
     async function checkLiveStatus() {
         const { data } = await _supabase.from('InventoryHistory').select('*').eq('ItemName', 'SYSTEM_STORE_STATUS');
-        
-        // Use the official Status column. If it is "Paused", the store is Live.
         if (data && data.length > 0) {
             isLive = (data[0].Status === 'Paused');
-        } else {
-            isLive = false;
-        }
-        updateLiveUI();
-    }
-
-    function updateLiveUI() {
-        const panel = document.getElementById('livePanel');
-        const text = document.getElementById('liveStatusText');
-        const btn = document.getElementById('liveToggleBtn');
-
-        if (isLive) {
-            panel.classList.add('is-live');
-            text.innerText = "🚨 Store Status: LIVE ON TIKTOK (Cart Paused) 🚨";
-            btn.innerText = "End Live & Unpause Store";
-        } else {
-            panel.classList.remove('is-live');
-            text.innerText = "Store Status: OFFLINE (Items Claimable)";
-            btn.innerText = "Go Live on TikTok (Pause Cart)";
+            const panel = document.getElementById('livePanel');
+            const text = document.getElementById('liveStatusText');
+            if (isLive) {
+                panel.classList.add('is-live');
+                text.innerText = "🚨 Store Status: LIVE ON TIKTOK 🚨";
+            } else {
+                panel.classList.remove('is-live');
+                text.innerText = "Store Status: OFFLINE";
+            }
         }
     }
 
     async function toggleLiveStatus() {
-        const btn = document.getElementById('liveToggleBtn');
-        btn.innerText = "Processing...";
-        btn.disabled = true;
-
-        // If currently live, switch system status to 'Available'. If offline, switch to 'Paused'.
-        const newSystemStatus = isLive ? 'Available' : 'Paused';
-
-        const { data, error } = await _supabase.from('InventoryHistory').update({ Status: newSystemStatus }).eq('ItemName', 'SYSTEM_STORE_STATUS').select();
-
-        if (error) alert("Toggle Error: " + error.message);
-
-        // If the system item doesn't exist, create it cleanly
+        const newStatus = isLive ? 'Available' : 'Paused';
+        // Clean Update: This looks for ANY system status item and updates it.
+        const { data } = await _supabase.from('InventoryHistory').update({ Status: newStatus }).eq('ItemName', 'SYSTEM_STORE_STATUS').select();
+        
         if (!data || data.length === 0) {
-            const itemData = { ItemName: 'SYSTEM_STORE_STATUS', ItemCategory: 'System', Status: newSystemStatus };
-            await _supabase.from('InventoryHistory').insert([itemData]);
+            await _supabase.from('InventoryHistory').insert([{ ItemName: 'SYSTEM_STORE_STATUS', ItemCategory: 'System', Status: newStatus }]);
         }
-
-        isLive = !isLive;
-        updateLiveUI();
-        btn.disabled = false;
-    }
-
-    function setupSearchableList() {
-        const list = document.getElementById('collectionOptions');
-        myCollections.forEach(col => {
-            let opt = document.createElement('option');
-            opt.value = col;
-            list.appendChild(opt);
-        });
+        location.reload();
     }
 
     async function loadTable() {
+        const { data } = await _supabase.from('InventoryHistory').select('*').neq('ItemName', 'SYSTEM_STORE_STATUS').order('CreatedAt', { ascending: false });
         const tbody = document.querySelector('#inventoryTable tbody');
-        const { data } = await _supabase.from('InventoryHistory').select('*').order('CreatedAt', { ascending: false });
-        if (!data) return;
-        
         tbody.innerHTML = "";
         data.forEach(item => {
-            // Hide the System Ghost Item from the UI table
-            if (item.ItemName === 'SYSTEM_STORE_STATUS') return; 
-            
             const row = document.createElement('tr');
-            const photo = item.image_url ? `<img src="${item.image_url}" class="thumb">` : `<div style="width:60px;height:60px;background:#eee;"></div>`;
             row.innerHTML = `
-                <td>${photo}</td>
-                <td><strong>${item.ItemName || '---'}</strong><br><small>${item.ItemCategory || ''}</small></td>
-                <td class="rarity-tag">${item.Rarity || 'Collection'}</td>
-                <td>${item.BrandSku || ''}</td>
-                <td>${item.Stone || ''}<br><small>${item.Plating || ''}</small></td>
-                <td>${item.Collection || '---'}</td>
-                <td><span class="price-cost">Cost: $${item.PurchasePrice || '0'}</span><br><span class="price-retail">Sell: $${item.Price || '0'}</span></td>
+                <td><img src="${item.image_url}" class="thumb"></td>
+                <td>${item.ItemName}</td>
+                <td>${item.Rarity}</td>
+                <td>${item.Collection}</td>
+                <td>$${item.Price}</td>
                 <td><button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button></td>
             `;
             tbody.appendChild(row);
@@ -225,9 +170,8 @@
     async function uploadToSupabase() {
         const btn = document.getElementById('saveBtn');
         const file = document.getElementById('ItemImage').files[0];
-        let publicUrl = null;
         btn.innerText = "UPLOADING...";
-        btn.disabled = true;
+        let publicUrl = "";
 
         if (file) {
             const name = Date.now() + '-' + file.name;
@@ -239,34 +183,25 @@
         const itemData = {
             ItemName: document.getElementById('ItemName').value,
             ItemCategory: document.getElementById('ItemCategory').value,
-            BrandName: document.getElementById('BrandName').value,
-            BrandSku: document.getElementById('BrandSku').value,
             Collection: document.getElementById('Collection').value,
-            Plating: document.getElementById('Plating').value,
             Rarity: document.getElementById('Rarity').value,
             Stone: document.getElementById('Stone').value,
             PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
             Price: parseFloat(document.getElementById('Price').value) || 0,
-            Status: document.getElementById('Status').value,
-            Notes: document.getElementById('Notes').value,
-            image_url: publicUrl
+            image_url: publicUrl,
+            Status: 'Available'
         };
 
-        const { error } = await _supabase.from('InventoryHistory').insert([itemData]);
-        if (!error) location.reload();
-        else { alert("Error: " + error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
+        await _supabase.from('InventoryHistory').insert([itemData]);
+        location.reload();
     }
 
     async function deleteItem(id) {
-        if (confirm("Delete permanently?")) {
+        if (confirm("Delete?")) {
             await _supabase.from('InventoryHistory').delete().eq('id', id);
             location.reload();
         }
     }
-
-    setupSearchableList();
-    checkLiveStatus();
-    loadTable();
 </script>
 </body>
 </html>
