@@ -157,8 +157,8 @@
         const tbody = document.querySelector('#inventoryTable tbody');
         tbody.innerHTML = "<tr><td colspan='8'>Loading database...</td></tr>";
 
-        // FIX: Removed the .order('created_at') rule that was breaking the connection!
-        const { data, error } = await _supabase.from('InventoryHistory').select('*');
+        // FIX: Pointing exactly to your 'CreatedAt' column to sort chronologically!
+        const { data, error } = await _supabase.from('InventoryHistory').select('*').order('CreatedAt', { ascending: false });
         
         if (error) { 
             alert("SUPABASE ERROR: " + error.message);
@@ -173,8 +173,8 @@
 
         tbody.innerHTML = "";
         
-        // FIX: Reversing the data array so your newest items still show up at the top!
-        data.reverse().forEach(item => {
+        // FIX: Removed the reverse trick. Letting Supabase do the heavy lifting.
+        data.forEach(item => {
             const row = document.createElement('tr');
             const photo = item.image_url ? `<img src="${item.image_url}" class="thumb">` : `<div style="width:60px;height:60px;background:#eee;"></div>`;
             row.innerHTML = `
