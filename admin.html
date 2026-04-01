@@ -1,21 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Admin - RECOVERY MODE</title>
+    <title>DeStashe Admin - Master Inventory</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        /* AUTH SECTION */
         #authContainer { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
-        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; }
-        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom:10px;}
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; }
+        
+        /* LIVE PANEL */
+        .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; transition: 0.3s; }
+        .live-panel.is-live { background: #fff5f5; border-color: #ff4d4d; box-shadow: 0 0 15px rgba(255, 77, 77, 0.2); }
+        .live-status-text { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; letter-spacing: 2px; margin-bottom: 10px; }
+        .live-panel.is-live .live-status-text { color: #ff4d4d; }
+        .btn-live { background: #222; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .live-panel.is-live .btn-live { background: #ff4d4d; }
+
+        /* FORM STYLES */
+        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
         .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 200px; }
         label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; text-transform: uppercase; }
+        .save-btn:hover { background: #d4af37; }
+
+        /* TABLE STYLES */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 12px; }
+        th { background: #f9f9f9; color: #999; text-transform: uppercase; font-size: 10px; }
+        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         img.thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
     </style>
 </head>
@@ -26,137 +44,19 @@
     <input type="email" id="authEmail" class="auth-input" placeholder="Email Address">
     <input type="password" id="authPassword" class="auth-input" placeholder="Password">
     <button class="auth-btn" onclick="handleLogin()">Log In</button>
-    <p style="font-size:12px; color:#999;">If login fails, check the alert message.</p>
 </div>
 
 <div class="container" id="appContainer" style="display: none;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <div class="admin-header">
         <h1>Inventory Manager</h1>
-        <button onclick="handleLogout()" style="cursor:pointer; padding:5px 10px;">Log Out</button>
+        <button onclick="handleLogout()" style="padding:8px 15px; cursor:pointer; border-radius:5px; border:1px solid #ddd;">Log Out</button>
     </div>
 
-    <div id="livePanel" style="background:#f4f4f4; padding:20px; text-align:center; margin-bottom:20px; border-radius:8px;">
-        <div id="liveStatusText" style="font-weight:bold; margin-bottom:10px;">Checking Store Status...</div>
-        <button onclick="toggleLiveStatus()" style="background:#222; color:white; padding:10px 20px; border-radius:20px; border:none; cursor:pointer;">Toggle Live Status</button>
+    <div class="live-panel" id="livePanel">
+        <div class="live-status-text" id="liveStatusText">Store Status: OFFLINE</div>
+        <button class="btn-live" onclick="toggleLiveStatus()">Toggle Live Status</button>
     </div>
 
     <div class="form-section">
         <div class="row">
-            <div style="flex: 2;"><label>Item Name</label><input type="text" id="ItemName"></div>
-            <div><label>Category</label><select id="ItemCategory"><option>Ring</option><option>Necklace</option><option>Earrings</option></select></div>
-        </div>
-        <div class="row">
-            <div><label>Purchase Price (Cost)</label><input type="number" id="PurchasePrice" step="0.01"></div>
-            <div><label>Retail Price (Sell)</label><input type="number" id="Price" step="0.01"></div>
-            <div><label>Photo</label><input type="file" id="ItemImage"></div>
-        </div>
-        <button class="save-btn" id="saveBtn" onclick="uploadToSupabase()">Add to Collection</button>
-    </div>
-
-    <table id="inventoryTable">
-        <thead><tr><th>Photo</th><th>Item</th><th>Cost/Retail</th><th>Action</th></tr></thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-<script>
-    const MY_HANDLE = 'destashe'; 
-    const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let currentUser = null;
-
-    // Monitor Auth State
-    _supabase.auth.onAuthStateChange((event, session) => {
-        console.log("Auth Event:", event);
-        if (session) {
-            currentUser = session.user;
-            document.getElementById('authContainer').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'block';
-            loadData();
-        } else {
-            document.getElementById('authContainer').style.display = 'block';
-            document.getElementById('appContainer').style.display = 'none';
-        }
-    });
-
-    async function handleLogin() {
-        const email = document.getElementById('authEmail').value;
-        const password = document.getElementById('authPassword').value;
-        const { error } = await _supabase.auth.signInWithPassword({ email, password });
-        if (error) alert("LOGIN ERROR: " + error.message);
-    }
-
-    async function handleLogout() { await _supabase.auth.signOut(); }
-
-    async function loadData() {
-        if (!currentUser) return;
-        // Fetch items that belong to THIS creator handle
-        const { data, error } = await _supabase.from('InventoryHistory')
-            .select('*')
-            .eq('creator_handle', MY_HANDLE)
-            .neq('ItemName', 'SYSTEM_STORE_STATUS');
-        
-        if (error) { console.error(error); return; }
-
-        const tbody = document.querySelector('#inventoryTable tbody');
-        tbody.innerHTML = "";
-        data.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><img src="${item.image_url}" class="thumb"></td>
-                <td>${item.ItemName}</td>
-                <td>$${item.PurchasePrice || 0} / $${item.Price}</td>
-                <td><button onclick="deleteItem('${item.id}')">Delete</button></td>
-            `;
-            tbody.appendChild(row);
-        });
-        checkLiveStatus();
-    }
-
-    async function checkLiveStatus() {
-        const { data } = await _supabase.from('InventoryHistory').select('*').eq('ItemName', 'SYSTEM_STORE_STATUS').eq('creator_handle', MY_HANDLE);
-        if (data && data.length > 0) {
-            const isLive = (data[0].Status === 'Paused');
-            document.getElementById('liveStatusText').innerText = isLive ? "🚨 Store Status: LIVE 🚨" : "Store Status: OFFLINE";
-            document.getElementById('livePanel').style.background = isLive ? "#fff5f5" : "#f4f4f4";
-        }
-    }
-
-    async function uploadToSupabase() {
-        const btn = document.getElementById('saveBtn');
-        const file = document.getElementById('ItemImage').files[0];
-        btn.innerText = "Saving...";
-        btn.disabled = true;
-
-        let publicUrl = "";
-        if (file) {
-            const name = MY_HANDLE + '-' + Date.now() + '-' + file.name;
-            await _supabase.storage.from('jewelry-photos').upload(name, file);
-            const { data } = _supabase.storage.from('jewelry-photos').getPublicUrl(name);
-            publicUrl = data.publicUrl;
-        }
-
-        const itemData = {
-            ItemName: document.getElementById('ItemName').value,
-            ItemCategory: document.getElementById('ItemCategory').value,
-            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
-            Price: parseFloat(document.getElementById('Price').value) || 0,
-            image_url: publicUrl,
-            Status: 'Available',
-            creator_handle: MY_HANDLE,
-            user_id: currentUser.id  // Stamping the ID badge
-        };
-
-        const { error } = await _supabase.from('InventoryHistory').insert([itemData]);
-        if (error) alert("Error saving: " + error.message);
-        else location.reload();
-    }
-
-    async function deleteItem(id) {
-        if (confirm("Delete?")) { await _supabase.from('InventoryHistory').delete().eq('id', id); location.reload(); }
-    }
-</script>
-</body>
-</html>
+            <div style="flex: 2;"><label>Item Name</label><input type
