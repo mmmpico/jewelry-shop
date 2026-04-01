@@ -78,30 +78,21 @@
 </div>
 
 <script>
+    // 1. DEFINE EVERYTHING FIRST
     const MY_HANDLE = 'destashe'; 
     const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     
-    // Initialize Supabase
+    // 2. INITIALIZE CONNECTION IMMEDIATELY
     const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const collections = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
 
-    _sb.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            document.getElementById('authBox').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            setupCols();
-            loadItems();
-        } else {
-            document.getElementById('authBox').style.display = 'block';
-            document.getElementById('mainApp').style.display = 'none';
-        }
-    });
-
+    // 3. DEFINE FUNCTIONS
     async function doLogin() {
         const e = document.getElementById('email').value;
         const p = document.getElementById('pass').value;
+        if(!e || !p) return alert("Enter email and password");
         const { error } = await _sb.auth.signInWithPassword({ email: e, password: p });
         if (error) alert(error.message);
     }
@@ -138,4 +129,42 @@
         if (file) {
             const name = MY_HANDLE + '-' + Date.now() + '-' + file.name;
             await _sb.storage.from('jewelry-photos').upload(name, file);
-            const { data
+            const { data } = _sb.storage.from('jewelry-photos').getPublicUrl(name);
+            url = data.publicUrl;
+        }
+
+        const { data: { user } } = await _sb.auth.getUser();
+        
+        const { error } = await _sb.from('InventoryHistory').insert([{
+            ItemName: document.getElementById('ItemName').value,
+            ItemCategory: document.getElementById('ItemCategory').value,
+            Collection: document.getElementById('Collection').value,
+            Plating: document.getElementById('Plating').value,
+            Rarity: document.getElementById('Rarity').value,
+            Stone: document.getElementById('Stone').value,
+            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
+            Price: parseFloat(document.getElementById('Price').value) || 0,
+            image_url: url,
+            Status: 'Available',
+            creator_handle: MY_HANDLE,
+            user_id: user.id
+        }]);
+        
+        if (error) { alert(error.message); btn.disabled = false; btn.innerText = "Add to My Collection"; }
+        else { location.reload(); }
+    }
+
+    async function deleteItem(id) {
+        if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
+    }
+
+    // 4. SET UP OBSERVER LAST
+    _sb.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            document.getElementById('authBox').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            setupCols();
+            loadItems();
+        } else {
+            document.getElementById('authBox').style.display = 'block';
+            document.getElementById('mainApp').
