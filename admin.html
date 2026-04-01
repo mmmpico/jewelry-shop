@@ -4,20 +4,25 @@
     <title>Jewelry Admin - Master Manager</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; color: #333; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .form-section { border-bottom: 2px solid #eee; padding-bottom: 30px; margin-bottom: 30px; }
-        .row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-        .row div { flex: 1; min-width: 150px; }
-        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #666; text-transform: uppercase; }
-        input, select, textarea { padding: 10px; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-        .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .save-btn:hover { background: #d4af37; }
+        h1, h2 { font-weight: 300; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
-        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        th { background: #fafafa; color: #888; text-transform: uppercase; }
-        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; }
+        .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .row div { flex: 1; min-width: 180px; }
+        
+        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        input:focus { border-color: #d4af37; outline: none; }
+        
+        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; margin-top: 10px; }
+        .save-btn:hover { background: #d4af37; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 8px; overflow: hidden; }
+        th, td { border: 1px solid #eee; padding: 15px; text-align: left; font-size: 13px; }
+        th { background: #f9f9f9; color: #999; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -29,7 +34,7 @@
         <div class="row">
             <div style="flex: 2;">
                 <label>Item Name</label>
-                <input type="text" id="ItemName">
+                <input type="text" id="ItemName" placeholder="e.g. Moonlight Butterfly Ring">
             </div>
             <div>
                 <label>Category</label>
@@ -38,46 +43,57 @@
                     <option value="Necklace">Necklace</option>
                     <option value="Earrings">Earrings</option>
                     <option value="Bracelet">Bracelet</option>
+                    <option value="Set">Mixed Set</option>
                 </select>
             </div>
         </div>
 
         <div class="row">
-            <div><label>Brand</label><input type="text" id="BrandName"></div>
-            <div><label>SKU</label><input type="text" id="BrandSku"></div>
-            <div><label>Collection</label><input type="text" id="Collection"></div>
+            <div><label>Brand</label><input type="text" id="BrandName" placeholder="e.g. Bomb Party"></div>
+            <div><label>SKU</label><input type="text" id="BrandSku" placeholder="BP-1234"></div>
+            <div><label>Collection</label><input type="text" id="Collection" placeholder="e.g. Spring 2026"></div>
         </div>
 
         <div class="row">
-            <div><label>Plating</label><input type="text" id="Plating"></div>
-            <div><label>Stone</label><input type="text" id="Stone"></div>
-            <div><label>Price ($)</label><input type="number" id="Price"></div>
+            <div>
+                <label>Plating</label>
+                <select id="Plating">
+                    <option value="Gold">Gold</option>
+                    <option value="Rose Gold">Rose Gold</option>
+                    <option value="Rhodium">Rhodium</option>
+                    <option value="Silver">Silver</option>
+                    <option value="Hematite">Hematite</option>
+                </select>
+            </div>
+            <div><label>Stone</label><input type="text" id="Stone" placeholder="e.g. Lab Opal"></div>
+            <div><label>Price ($)</label><input type="number" id="Price" placeholder="0.00"></div>
             <div>
                 <label>Status</label>
                 <select id="Status">
                     <option value="Available">Available</option>
                     <option value="Sold">Sold</option>
-                    <option value="Paused">Paused</option>
+                    <option value="Paused">Paused (Hidden)</option>
                 </select>
             </div>
         </div>
 
         <label>Notes</label>
-        <textarea id="Notes" rows="2"></textarea>
+        <textarea id="Notes" rows="2" placeholder="Any extra details for the customer..."></textarea>
 
         <label>Photo</label>
         <input type="file" id="ItemImage" accept="image/*">
         
-        <button class="save-btn" onclick="uploadToSupabase()">Add to Collection</button>
+        <button class="save-btn" id="saveBtn" onclick="uploadToSupabase()">Add to Collection</button>
+        <div id="statusMsg" style="text-align:center; margin-top:10px;"></div>
     </div>
 
-    <h2>Current Inventory</h2>
+    <h2>Live Inventory List</h2>
     <table id="inventoryTable">
         <thead>
             <tr>
-                <th>Name</th>
+                <th>Item</th>
                 <th>SKU</th>
-                <th>Category</th>
+                <th>Details</th>
                 <th>Price</th>
                 <th>Status</th>
                 <th>Action</th>
@@ -94,7 +110,7 @@
 
     async function loadTable() {
         const { data, error } = await _supabase.from('InventoryHistory').select('*').order('created_at', { ascending: false });
-        if (error) { console.error(error); return; }
+        if (error) return;
 
         const tbody = document.querySelector('#inventoryTable tbody');
         tbody.innerHTML = "";
@@ -102,11 +118,11 @@
         data.forEach(item => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><strong>${item.ItemName || '---'}</strong><br><small>${item.Stone || ''} ${item.Plating || ''}</small></td>
+                <td><strong>${item.ItemName || '---'}</strong><br><small>${item.ItemCategory || ''}</small></td>
                 <td>${item.BrandSku || '---'}</td>
-                <td>${item.ItemCategory || '---'}</td>
+                <td><small>${item.Stone || ''} / ${item.Plating || ''}</small></td>
                 <td>$${item.Price || '0'}</td>
-                <td>${item.Status || 'Available'}</td>
+                <td>${item.Status}</td>
                 <td><button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button></td>
             `;
             tbody.appendChild(row);
@@ -114,8 +130,12 @@
     }
 
     async function uploadToSupabase() {
+        const btn = document.getElementById('saveBtn');
         const file = document.getElementById('ItemImage').files[0];
         let publicUrl = null;
+
+        btn.innerText = "Uploading...";
+        btn.disabled = true;
 
         if (file) {
             const name = Date.now() + '-' + file.name;
@@ -140,10 +160,11 @@
 
         const { error } = await _supabase.from('InventoryHistory').insert([itemData]);
         if (!error) location.reload();
+        else { alert("Error saving: " + error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
     }
 
     async function deleteItem(id) {
-        if (confirm("Permanently delete this item?")) {
+        if (confirm("Delete this item?")) {
             await _supabase.from('InventoryHistory').delete().eq('id', id);
             location.reload();
         }
