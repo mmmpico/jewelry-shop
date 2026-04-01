@@ -178,18 +178,25 @@
         location.reload();
     }
 
-    async function uploadToSupabase() {
-        const btn = document.getElementById('saveBtn');
-        const file = document.getElementById('ItemImage').files[0];
-        btn.innerText = "UPLOADING...";
-        let publicUrl = "";
-
-        if (file) {
-            const name = MY_HANDLE + '-' + Date.now() + '-' + file.name;
-            await _supabase.storage.from('jewelry-photos').upload(name, file);
-            const { data } = _supabase.storage.from('jewelry-photos').getPublicUrl(name);
-            publicUrl = data.publicUrl;
-        }
+    // FIND THIS SECTION IN YOUR CODE AND UPDATE IT
+const itemData = {
+    ItemName: document.getElementById('ItemName').value,
+    ItemCategory: document.getElementById('ItemCategory').value,
+    BrandName: document.getElementById('BrandName').value,
+    BrandSku: document.getElementById('BrandSku').value,
+    Collection: document.getElementById('Collection').value,
+    Plating: document.getElementById('Plating').value,
+    Rarity: document.getElementById('Rarity').value,
+    Stone: document.getElementById('Stone').value,
+    PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
+    Price: parseFloat(document.getElementById('Price').value) || 0,
+    Notes: document.getElementById('Notes').value,
+    image_url: publicUrl,
+    Status: 'Available',
+    // THESE TWO LINES ARE THE CRITICAL FIX:
+    creator_handle: MY_HANDLE, 
+    user_id: currentUser.id  
+};
 
         const itemData = {
             ItemName: document.getElementById('ItemName').value,
