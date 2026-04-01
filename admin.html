@@ -6,18 +6,25 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        /* AUTH BOX RESTORED */
         #authContainer { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
-        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; }
-        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
+        .auth-btn:hover { background: #d4af37; }
+
         .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; transition: 0.3s; }
         .live-panel.is-live { background: #fff5f5; border-color: #ff4d4d; }
+        
         .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 200px; }
         label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; width:100%; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+
         table { width: 100%; border-collapse: collapse; margin-top: 25px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; font-size: 13px; }
+        th { color: #999; text-transform: uppercase; font-size: 10px; }
         img.thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
     </style>
 </head>
@@ -25,4 +32,27 @@
 
 <div id="authContainer">
     <h2 style="color:#d4af37">Creator Login</h2>
-    <input type="email" id="emailField" class="auth-input" placeholder="Email">
+    <div id="authError" style="color:red; margin-bottom:10px; font-size: 12px;"></div>
+    <input type="email" id="emailField" class="auth-input" placeholder="Email Address">
+    <input type="password" id="passField" class="auth-input" placeholder="Password">
+    <button class="auth-btn" id="loginBtn">Log In</button>
+</div>
+
+<div class="container" id="appContainer" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h1>Inventory Manager</h1>
+        <button onclick="supabase.auth.signOut().then(()=>location.reload())" style="cursor:pointer; border:none; background:none; color:#888;">Log Out</button>
+    </div>
+
+    <div class="live-panel" id="livePanel">
+        <div id="liveStatusText" style="font-weight:bold; margin-bottom:10px; text-transform:uppercase;">Store Status: OFFLINE</div>
+        <button onclick="toggleLiveStatus()" style="padding:10px 20px; cursor:pointer; border-radius:20px; border:1px solid #ddd;">Toggle Live Status</button>
+    </div>
+
+    <div class="form-section">
+        <div class="row">
+            <div style="flex: 2;"><label>Item Name</label><input type="text" id="ItemName"></div>
+            <div>
+                <label>Category</label>
+                <select id="ItemCategory">
+                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option
