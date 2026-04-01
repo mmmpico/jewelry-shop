@@ -1,30 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Admin - Master Inventory</title>
+    <title>DeStashe Admin - Final Stable</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: none; }
         
-        /* AUTH BOX */
         #authContainer { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
         .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
-        .auth-btn:hover { background: #d4af37; }
+        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
 
-        /* LIVE STATUS PANEL */
-        .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; transition: 0.3s; }
+        .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; }
         .live-panel.is-live { background: #fff5f5; border-color: #ff4d4d; }
         
-        /* FORM GRID */
         .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 150px; }
         label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; margin-top: 10px; }
 
-        /* TABLE */
         table { width: 100%; border-collapse: collapse; margin-top: 25px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; font-size: 13px; }
         th { color: #999; text-transform: uppercase; font-size: 10px; }
@@ -40,10 +35,10 @@
     <button class="auth-btn" id="loginBtn">Log In</button>
 </div>
 
-<div class="container" id="appContainer" style="display:none;">
+<div class="container" id="appContainer">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h1>Inventory Manager</h1>
-        <button onclick="supabase.auth.signOut().then(()=>location.reload())" style="cursor:pointer; border:none; background:none; color:#888;">Log Out</button>
+        <button id="logoutBtn" style="cursor:pointer; border:1px solid #ddd; padding:8px 15px; border-radius:5px; background:white;">Log Out</button>
     </div>
 
     <div class="live-panel" id="livePanel">
@@ -88,7 +83,6 @@
         <button class="save-btn" id="saveBtn" onclick="uploadToSupabase()">Add to My Collection</button>
     </div>
 
-    <h2>My Inventory</h2>
     <table id="inventoryTable">
         <thead><tr><th>Photo</th><th>Item</th><th>Rarity</th><th>Collection</th><th>Cost/Retail</th><th>Action</th></tr></thead>
         <tbody></tbody>
@@ -101,10 +95,17 @@
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const collections = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025", "January 2025 Birthday", "February 2025 Birthday"];
+    const collections = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
 
     let currentUser = null;
 
+    // Fixed Logout Listener
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await _supabase.auth.signOut();
+        location.reload();
+    });
+
+    // Fixed Login Listener
     document.getElementById('loginBtn').addEventListener('click', async () => {
         const email = document.getElementById('emailField').value;
         const password = document.getElementById('passField').value;
@@ -150,53 +151,4 @@
     }
 
     async function toggleLiveStatus() {
-        const { data: current } = await _supabase.from('InventoryHistory').select('*').eq('ItemName', 'SYSTEM_STORE_STATUS').eq('creator_handle', MY_HANDLE);
-        const isLiveNow = current && current.length > 0 && current[0].Status === 'Paused';
-        const newStatus = isLiveNow ? 'Available' : 'Paused';
-
-        const { data } = await _supabase.from('InventoryHistory').update({ Status: newStatus }).eq('ItemName', 'SYSTEM_STORE_STATUS').eq('creator_handle', MY_HANDLE).select();
-        if (!data || data.length === 0) {
-            await _supabase.from('InventoryHistory').insert([{ ItemName: 'SYSTEM_STORE_STATUS', Status: newStatus, creator_handle: MY_HANDLE, user_id: currentUser.id }]);
-        }
-        location.reload();
-    }
-
-    async function uploadToSupabase() {
-        const btn = document.getElementById('saveBtn');
-        const file = document.getElementById('ItemImage').files[0];
-        btn.innerText = "UPLOADING...";
-        btn.disabled = true;
-
-        let publicUrl = "";
-        if (file) {
-            const name = MY_HANDLE + '-' + Date.now() + '-' + file.name;
-            await _supabase.storage.from('jewelry-photos').upload(name, file);
-            const { data } = _supabase.storage.from('jewelry-photos').getPublicUrl(name);
-            publicUrl = data.publicUrl;
-        }
-
-        const { error } = await _supabase.from('InventoryHistory').insert([{
-            ItemName: document.getElementById('ItemName').value,
-            ItemCategory: document.getElementById('ItemCategory').value,
-            Collection: document.getElementById('Collection').value,
-            Plating: document.getElementById('Plating').value,
-            Rarity: document.getElementById('Rarity').value,
-            Stone: document.getElementById('Stone').value,
-            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
-            Price: parseFloat(document.getElementById('Price').value) || 0,
-            image_url: publicUrl,
-            Status: 'Available',
-            creator_handle: MY_HANDLE,
-            user_id: currentUser.id
-        }]);
-        
-        if (error) { alert(error.message); btn.disabled = false; btn.innerText = "Add to My Collection"; }
-        else location.reload();
-    }
-
-    async function deleteItem(id) {
-        if (confirm("Delete permanently?")) { await _supabase.from('InventoryHistory').delete().eq('id', id); location.reload(); }
-    }
-</script>
-</body>
-</html>
+        const { data: current } = await _supabase.from('InventoryHistory').select('*').eq('ItemName', 'SYSTEM_STORE_STATUS').eq('creator_handle
