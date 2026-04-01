@@ -3,6 +3,109 @@
 <head>
     <title>DeStashe Admin - Master Manager</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // 2. INITIALIZE DATABASE IMMEDIATELY
+        const MY_HANDLE = 'destashe'; 
+        const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
+        
+        // Use a global variable so the whole page can see it
+        var _sb;
+
+        // This function runs the second the script loads
+        function initSupabase() {
+            _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log("Supabase Initialized");
+            
+            // Watch for Login Status
+            _sb.auth.onAuthStateChange((event, session) => {
+                if (session) {
+                    document.getElementById('authBox').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'block';
+                    setupCols();
+                    loadItems();
+                } else {
+                    document.getElementById('authBox').style.display = 'block';
+                    document.getElementById('mainApp').style.display = 'none';
+                }
+            });
+        }
+
+        // 3. DEFINE CORE FUNCTIONS AT THE TOP
+        async function doLogin() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            if(!e || !p) return alert("Enter email and password");
+            
+            const { error } = await _sb.auth.signInWithPassword({ email: e, password: p });
+            if (error) alert(error.message);
+        }
+
+        async function doLogout() {
+            await _sb.auth.signOut();
+            location.reload();
+        }
+
+        async function loadItems() {
+            const { data } = await _sb.from('InventoryHistory').select('*').eq('creator_handle', MY_HANDLE).neq('ItemName', 'SYSTEM_STORE_STATUS').order('CreatedAt', { ascending: false });
+            const tbody = document.querySelector('#inventoryTable tbody');
+            tbody.innerHTML = "";
+            data?.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td><img src="${item.image_url}" class="thumb"></td><td><strong>${item.ItemName}</strong></td><td>${item.Rarity}</td><td>${item.Collection}</td><td>$${item.PurchasePrice || 0} / $${item.Price}</td><td><button onclick="deleteItem('${item.id}')" style="color:red; border:none; background:none; cursor:pointer;">Delete</button></td>`;
+                tbody.appendChild(row);
+            });
+        }
+
+        function setupCols() {
+            const collections = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
+            const l = document.getElementById('cols');
+            if(!l) return;
+            l.innerHTML = "";
+            collections.forEach(c => { let o = document.createElement('option'); o.value = c; l.appendChild(o); });
+        }
+
+        async function uploadItem() {
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            const file = document.getElementById('ItemImage').files[0];
+            let url = "";
+            if (file) {
+                const name = MY_HANDLE + '-' + Date.now() + '-' + file.name;
+                await _sb.storage.from('jewelry-photos').upload(name, file);
+                const { data } = _sb.storage.from('jewelry-photos').getPublicUrl(name);
+                url = data.publicUrl;
+            }
+
+            const { data: { user } } = await _sb.auth.getUser();
+            await _sb.from('InventoryHistory').insert([{
+                ItemName: document.getElementById('ItemName').value,
+                ItemCategory: document.getElementById('ItemCategory').value,
+                Collection: document.getElementById('Collection').value,
+                Plating: document.getElementById('Plating').value,
+                Rarity: document.getElementById('Rarity').value,
+                Stone: document.getElementById('Stone').value,
+                PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
+                Price: parseFloat(document.getElementById('Price').value) || 0,
+                image_url: url,
+                Status: 'Available',
+                creator_handle: MY_HANDLE,
+                user_id: user.id
+            }]);
+            location.reload();
+        }
+
+        async function deleteItem(id) {
+            if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
+        }
+
+        // Run the init function
+        initSupabase();
+    </script>
+
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: none; }
@@ -12,7 +115,7 @@
         .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 150px; }
         label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
         .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 25px; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; font-size: 13px; }
@@ -68,7 +171,7 @@
             <div><label>Photo</label><input type="file" id="ItemImage"></div>
         </div>
         
-        <button class="save-btn" onclick="uploadItem()">Add to My Collection</button>
+        <button id="saveBtn" class="save-btn" onclick="uploadItem()">Add to My Collection</button>
     </div>
 
     <table id="inventoryTable">
@@ -77,94 +180,5 @@
     </table>
 </div>
 
-<script>
-    // 1. DEFINE EVERYTHING FIRST
-    const MY_HANDLE = 'destashe'; 
-    const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-    
-    // 2. INITIALIZE CONNECTION IMMEDIATELY
-    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    const collections = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
-
-    // 3. DEFINE FUNCTIONS
-    async function doLogin() {
-        const e = document.getElementById('email').value;
-        const p = document.getElementById('pass').value;
-        if(!e || !p) return alert("Enter email and password");
-        const { error } = await _sb.auth.signInWithPassword({ email: e, password: p });
-        if (error) alert(error.message);
-    }
-
-    async function doLogout() {
-        await _sb.auth.signOut();
-        location.reload();
-    }
-
-    function setupCols() {
-        const l = document.getElementById('cols');
-        l.innerHTML = "";
-        collections.forEach(c => { let o = document.createElement('option'); o.value = c; l.appendChild(o); });
-    }
-
-    async function loadItems() {
-        const { data } = await _sb.from('InventoryHistory').select('*').eq('creator_handle', MY_HANDLE).neq('ItemName', 'SYSTEM_STORE_STATUS').order('CreatedAt', { ascending: false });
-        const tbody = document.querySelector('#inventoryTable tbody');
-        tbody.innerHTML = "";
-        data?.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td><img src="${item.image_url}" class="thumb"></td><td><strong>${item.ItemName}</strong></td><td>${item.Rarity}</td><td>${item.Collection}</td><td>$${item.PurchasePrice || 0} / $${item.Price}</td><td><button onclick="deleteItem('${item.id}')" style="color:red; border:none; background:none; cursor:pointer;">Delete</button></td>`;
-            tbody.appendChild(row);
-        });
-    }
-
-    async function uploadItem() {
-        const btn = document.querySelector('.save-btn');
-        btn.innerText = "Saving...";
-        btn.disabled = true;
-
-        const file = document.getElementById('ItemImage').files[0];
-        let url = "";
-        if (file) {
-            const name = MY_HANDLE + '-' + Date.now() + '-' + file.name;
-            await _sb.storage.from('jewelry-photos').upload(name, file);
-            const { data } = _sb.storage.from('jewelry-photos').getPublicUrl(name);
-            url = data.publicUrl;
-        }
-
-        const { data: { user } } = await _sb.auth.getUser();
-        
-        const { error } = await _sb.from('InventoryHistory').insert([{
-            ItemName: document.getElementById('ItemName').value,
-            ItemCategory: document.getElementById('ItemCategory').value,
-            Collection: document.getElementById('Collection').value,
-            Plating: document.getElementById('Plating').value,
-            Rarity: document.getElementById('Rarity').value,
-            Stone: document.getElementById('Stone').value,
-            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
-            Price: parseFloat(document.getElementById('Price').value) || 0,
-            image_url: url,
-            Status: 'Available',
-            creator_handle: MY_HANDLE,
-            user_id: user.id
-        }]);
-        
-        if (error) { alert(error.message); btn.disabled = false; btn.innerText = "Add to My Collection"; }
-        else { location.reload(); }
-    }
-
-    async function deleteItem(id) {
-        if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
-    }
-
-    // 4. SET UP OBSERVER LAST
-    _sb.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            document.getElementById('authBox').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            setupCols();
-            loadItems();
-        } else {
-            document.getElementById('authBox').style.display = 'block';
-            document.getElementById('mainApp').
+</body>
+</html>
