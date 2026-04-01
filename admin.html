@@ -10,10 +10,11 @@
         /* AUTH SECTION */
         #authContainer { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
         .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; }
+        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; transition: 0.3s; }
+        .auth-btn:hover { background: #d4af37; }
         
         /* LIVE PANEL */
-        .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; transition: 0.3s; }
+        .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; }
         .live-panel.is-live { background: #fff5f5; border-color: #ff4d4d; box-shadow: 0 0 15px rgba(255, 77, 77, 0.2); }
         .live-status-text { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; letter-spacing: 2px; margin-bottom: 10px; }
         .live-panel.is-live .live-status-text { color: #ff4d4d; }
@@ -27,13 +28,11 @@
         label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; text-transform: uppercase; }
-        .save-btn:hover { background: #d4af37; }
 
         /* TABLE STYLES */
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 12px; }
         th { background: #f9f9f9; color: #999; text-transform: uppercase; font-size: 10px; }
-        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         img.thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
     </style>
 </head>
@@ -41,22 +40,137 @@
 
 <div id="authContainer">
     <h2 style="color:#d4af37">Creator Login</h2>
-    <input type="email" id="authEmail" class="auth-input" placeholder="Email Address">
-    <input type="password" id="authPassword" class="auth-input" placeholder="Password">
-    <button class="auth-btn" onclick="handleLogin()">Log In</button>
+    <div id="authError" style="color:red; margin-bottom:10px; font-size: 12px;"></div>
+    <input type="email" id="loginEmail" class="auth-input" placeholder="Email Address">
+    <input type="password" id="loginPassword" class="auth-input" placeholder="Password">
+    <button id="loginButton" class="auth-btn" onclick="signInUser()">Log In</button>
 </div>
 
 <div class="container" id="appContainer" style="display: none;">
     <div class="admin-header">
         <h1>Inventory Manager</h1>
-        <button onclick="handleLogout()" style="padding:8px 15px; cursor:pointer; border-radius:5px; border:1px solid #ddd;">Log Out</button>
+        <button onclick="signOutUser()" style="padding:8px 15px; cursor:pointer; border-radius:5px; border:1px solid #ddd;">Log Out</button>
     </div>
 
     <div class="live-panel" id="livePanel">
         <div class="live-status-text" id="liveStatusText">Store Status: OFFLINE</div>
-        <button class="btn-live" onclick="toggleLiveStatus()">Toggle Live Status</button>
+        <button id="liveToggleBtn" class="btn-live" onclick="toggleLiveStatus()">Toggle Live Status</button>
     </div>
 
     <div class="form-section">
         <div class="row">
-            <div style="flex: 2;"><label>Item Name</label><input type
+            <div style="flex: 2;"><label>Item Name</label><input type="text" id="ItemName"></div>
+            <div>
+                <label>Category</label>
+                <select id="ItemCategory">
+                    <option value="Ring">Ring</option>
+                    <option value="Necklace">Necklace</option>
+                    <option value="Earrings">Earrings</option>
+                    <option value="Bracelet">Bracelet</option>
+                    <option value="Set">Set (Mixed)</option>
+                </select>
+            </div>
+        </div>
+        <div class="row">
+            <div><label>Brand Name</label><input type="text" id="BrandName" value="Bomb Party"></div>
+            <div><label>Brand SKU</label><input type="text" id="BrandSku"></div>
+            <div><label>Collection</label><input list="collectionOptions" id="Collection"><datalist id="collectionOptions"></datalist></div>
+        </div>
+        <div class="row">
+            <div><label>Plating</label><select id="Plating"><option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option></select></div>
+            <div><label>Rarity</label><select id="Rarity"><option>Collection</option><option>Unicorn</option><option>Diamonds</option></select></div>
+            <div><label>Stone</label><input type="text" id="Stone"></div>
+        </div>
+        <div class="row">
+            <div><label>Purchase Price (Cost) ($)</label><input type="number" id="PurchasePrice" step="0.01"></div>
+            <div><label>Retail Price (Sell) ($)</label><input type="number" id="Price" step="0.01"></div>
+            <div><label>Photo</label><input type="file" id="ItemImage"></div>
+        </div>
+        <label>Notes</label><textarea id="Notes" rows="2"></textarea>
+        <button class="save-btn" id="saveBtn" onclick="uploadToSupabase()">Add to My Collection</button>
+    </div>
+
+    <h2>My Inventory</h2>
+    <table id="inventoryTable">
+        <thead><tr><th>Photo</th><th>Item</th><th>Rarity</th><th>Collection</th><th>Cost / Retail</th><th>Action</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+    const MY_HANDLE = 'destashe'; 
+    const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const myCollections = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
+
+    let currentUser = null;
+
+    // Check auth session
+    _supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            setupCollectionList();
+            loadData();
+        } else {
+            document.getElementById('authContainer').style.display = 'block';
+            document.getElementById('appContainer').style.display = 'none';
+        }
+    });
+
+    async function signInUser() {
+        const btn = document.getElementById('loginButton');
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        const errorDiv = document.getElementById('authError');
+        
+        btn.innerText = "SIGNING IN...";
+        btn.disabled = true;
+        errorDiv.innerText = "";
+
+        const { error } = await _supabase.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+            errorDiv.innerText = error.message;
+            btn.innerText = "LOG IN";
+            btn.disabled = false;
+        }
+    }
+
+    async function signOutUser() { await _supabase.auth.signOut(); }
+
+    function setupCollectionList() {
+        const list = document.getElementById('collectionOptions');
+        list.innerHTML = "";
+        myCollections.forEach(col => { let opt = document.createElement('option'); opt.value = col; list.appendChild(opt); });
+    }
+
+    async function loadData() {
+        if (!currentUser) return;
+        const { data, error } = await _supabase.from('InventoryHistory').select('*').eq('creator_handle', MY_HANDLE).neq('ItemName', 'SYSTEM_STORE_STATUS').order('CreatedAt', { ascending: false });
+        if (error) return;
+        const tbody = document.querySelector('#inventoryTable tbody');
+        tbody.innerHTML = "";
+        data.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td><img src="${item.image_url}" class="thumb"></td><td><strong>${item.ItemName}</strong></td><td>${item.Rarity}</td><td>${item.Collection}</td><td>$${item.PurchasePrice || 0} / $${item.Price}</td><td><button onclick="deleteItem('${item.id}')">Delete</button></td>`;
+            tbody.appendChild(row);
+        });
+        checkLiveStatus();
+    }
+
+    async function checkLiveStatus() {
+        const { data } = await _supabase.from('InventoryHistory').select('*').eq('ItemName', 'SYSTEM_STORE_STATUS').eq('creator_handle', MY_HANDLE);
+        if (data && data.length > 0) {
+            const isLive = (data[0].Status === 'Paused');
+            document.getElementById('livePanel').className = isLive ? 'live-panel is-live' : 'live-panel';
+            document.getElementById('liveStatusText').innerText = isLive ? "🚨 Store Status: LIVE ON TIKTOK 🚨" : "Store Status: OFFLINE";
+        }
+    }
+
+    async function toggleLiveStatus() {
+        const { data: check } = await _supabase.from('InventoryHistory').select('*').eq('ItemName', 'SYSTEM_STORE_STATUS').eq('creator_handle', MY_HANDLE);
+        const isLiveNow = check && check.length
