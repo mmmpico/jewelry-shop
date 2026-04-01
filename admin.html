@@ -1,152 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Admin - Master Inventory</title>
+    <title>DeStashe Admin - Final Test</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
-        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        #authContainer { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
-        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; transition: 0.3s; }
-        .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
-        .row div { flex: 1; min-width: 200px; }
-        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 12px; }
-        img.thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
+        body { font-family: sans-serif; background: #fdfbfb; padding: 20px; }
+        #authContainer { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; border: 1px solid #eee; }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; }
+        .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; transition: 0.3s; }
+        .auth-btn:hover { background: #d4af37; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; display: none; }
     </style>
 </head>
 <body>
 
 <div id="authContainer">
     <h2 style="color:#d4af37">Creator Login</h2>
-    <div id="authError" style="color:red; margin-bottom:10px; font-size: 12px;"></div>
     <input type="email" id="loginEmail" class="auth-input" placeholder="Email Address">
     <input type="password" id="loginPassword" class="auth-input" placeholder="Password">
-    <button id="submitLogin" class="auth-btn">Log In</button>
+    <button class="auth-btn" onclick="signInUser()">Log In</button>
 </div>
 
-<div class="container" id="appContainer" style="display: none;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h1>Inventory Manager</h1>
-        <button id="logoutBtn" style="cursor:pointer; padding:5px 10px;">Log Out</button>
-    </div>
-
-    <div class="form-section">
-        <div class="row">
-            <div style="flex: 2;"><label>Item Name</label><input type="text" id="ItemName"></div>
-            <div>
-                <label>Category</label>
-                <select id="ItemCategory">
-                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Set</option>
-                </select>
-            </div>
-        </div>
-        <div class="row">
-            <div><label>Brand Name</label><input type="text" id="BrandName" value="Bomb Party"></div>
-            <div><label>Brand SKU</label><input type="text" id="BrandSku"></div>
-            <div><label>Collection</label><input list="collectionOptions" id="Collection"><datalist id="collectionOptions"></datalist></div>
-        </div>
-        <div class="row">
-            <div><label>Purchase Price (Cost)</label><input type="number" id="PurchasePrice" step="0.01"></div>
-            <div><label>Retail Price (Sell)</label><input type="number" id="Price" step="0.01"></div>
-            <div><label>Photo</label><input type="file" id="ItemImage"></div>
-        </div>
-        <button class="save-btn" id="saveBtn">Add to Collection</button>
-    </div>
-
-    <table id="inventoryTable">
-        <thead><tr><th>Photo</th><th>Item</th><th>Cost / Retail</th><th>Action</th></tr></thead>
-        <tbody></tbody>
-    </table>
+<div id="appContainer" class="container">
+    <h1>Welcome Back!</h1>
+    <button onclick="supabase.auth.signOut().then(() => location.reload())">Log Out</button>
+    <p>You are logged in. Your inventory will appear here shortly.</p>
 </div>
 
 <script>
+    // ALERT TO PROVE THE CODE LOADED
+    console.log("Script is active and running!");
+
     const MY_HANDLE = 'destashe'; 
     const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentUser = null;
-
-    // --- BUTTON EVENT LISTENERS (Bulletproof Method) ---
-    document.getElementById('submitLogin').addEventListener('click', signInUser);
-    document.getElementById('logoutBtn').addEventListener('click', signOutUser);
-    document.getElementById('saveBtn').addEventListener('click', uploadToSupabase);
-
-    // Monitor Auth
+    // Watch for Login
     _supabase.auth.onAuthStateChange((event, session) => {
         if (session) {
-            currentUser = session.user;
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
-            loadData();
-        } else {
-            document.getElementById('authContainer').style.display = 'block';
-            document.getElementById('appContainer').style.display = 'none';
         }
     });
 
     async function signInUser() {
+        console.log("Login button clicked!");
         const email = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
-        const btn = document.getElementById('submitLogin');
-        
-        btn.innerText = "CHECKING...";
-        const { error } = await _supabase.auth.signInWithPassword({ email, password });
+
+        if (!email || !password) {
+            alert("Please enter both email and password.");
+            return;
+        }
+
+        const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
         
         if (error) {
-            alert("Error: " + error.message);
-            btn.innerText = "LOG IN";
+            alert("Login Failed: " + error.message);
+        } else {
+            console.log("Login Success!", data);
         }
-    }
-
-    async function signOutUser() { await _supabase.auth.signOut(); }
-
-    async function loadData() {
-        const { data, error } = await _supabase.from('InventoryHistory')
-            .select('*')
-            .eq('creator_handle', MY_HANDLE)
-            .neq('ItemName', 'SYSTEM_STORE_STATUS');
-        
-        const tbody = document.querySelector('#inventoryTable tbody');
-        tbody.innerHTML = "";
-        data?.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td><img src="${item.image_url}" class="thumb"></td><td>${item.ItemName}</td><td>$${item.PurchasePrice} / $${item.Price}</td><td><button onclick="deleteItem('${item.id}')">Delete</button></td>`;
-            tbody.appendChild(row);
-        });
-    }
-
-    async function uploadToSupabase() {
-        const file = document.getElementById('ItemImage').files[0];
-        let publicUrl = "";
-        if (file) {
-            const name = MY_HANDLE + '-' + Date.now() + '-' + file.name;
-            await _supabase.storage.from('jewelry-photos').upload(name, file);
-            const { data } = _supabase.storage.from('jewelry-photos').getPublicUrl(name);
-            publicUrl = data.publicUrl;
-        }
-
-        const { error } = await _supabase.from('InventoryHistory').insert([{
-            ItemName: document.getElementById('ItemName').value,
-            ItemCategory: document.getElementById('ItemCategory').value,
-            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
-            Price: parseFloat(document.getElementById('Price').value) || 0,
-            image_url: publicUrl,
-            creator_handle: MY_HANDLE,
-            user_id: currentUser.id
-        }]);
-        
-        if (error) alert(error.message);
-        else location.reload();
-    }
-
-    async function deleteItem(id) {
-        if (confirm("Delete?")) { await _supabase.from('InventoryHistory').delete().eq('id', id); location.reload(); }
     }
 </script>
 </body>
