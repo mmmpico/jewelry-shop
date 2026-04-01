@@ -4,55 +4,32 @@
     <title>Heather's Jewelry Collection</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* --- BEAUTIFUL GOLD STYLING --- */
         body { font-family: 'Georgia', serif; background: #fffafb; color: #333; margin: 0; padding: 0; }
         
-        /* TIKTOK LIVE BANNER (Hidden by default) */
-        #liveBanner { display: none; background: #ff4d4d; color: white; text-align: center; padding: 15px; font-family: sans-serif; font-weight: bold; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; animation: pulseBanner 2s infinite; position: sticky; top: 0; z-index: 2000; box-shadow: 0 4px 10px rgba(255, 77, 77, 0.3); }
+        /* LIVE BANNER */
+        #liveBanner { display: none; background: #ff4d4d; color: white; text-align: center; padding: 15px; font-family: sans-serif; font-weight: bold; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; animation: pulseBanner 2s infinite; position: sticky; top: 0; z-index: 2000; }
         @keyframes pulseBanner { 0% { background: #ff4d4d; } 50% { background: #ff1a1a; } 100% { background: #ff4d4d; } }
 
-        header { text-align: center; padding: 40px 20px 30px; border-bottom: 1px solid #eee; margin-bottom: 20px; }
-        h1 { font-weight: 300; text-transform: uppercase; letter-spacing: 3px; margin: 0; color: #222; }
+        header { text-align: center; padding: 40px 20px; }
+        h1 { font-weight: 300; text-transform: uppercase; letter-spacing: 3px; margin: 0; }
 
-        .search-container { text-align: center; margin-bottom: 20px; }
-        #searchInput { padding: 12px 20px; width: 80%; max-width: 400px; border: 1px solid #d4af37; border-radius: 25px; outline: none; font-size: 16px; font-family: 'Georgia', serif; transition: 0.3s; }
-        #searchInput:focus { box-shadow: 0 0 10px rgba(212, 175, 55, 0.3); }
-
-        .nav { text-align: center; margin-bottom: 40px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 0 20px; }
-        .nav button { padding: 10px 22px; cursor: pointer; background: white; border: 1px solid #d4af37; border-radius: 25px; color: #d4af37; font-weight: bold; font-family: sans-serif; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; transition: 0.3s; }
-        .nav button:hover, .nav button.active { background: #d4af37; color: white; }
-
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; max-width: 1200px; margin: auto; padding: 0 20px 40px; }
-        .card { background: white; border: 1px solid #eee; text-align: center; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; border-radius: 8px; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(212, 175, 55, 0.2); border-color: #d4af37; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; max-width: 1200px; margin: auto; padding: 20px; }
+        .card { background: white; border: 1px solid #eee; text-align: center; position: relative; overflow: hidden; transition: 0.3s; border-radius: 8px; cursor: pointer; }
+        .card img { width: 100%; height: 320px; object-fit: cover; display: block; }
         
-        .card img { width: 100%; height: 320px; object-fit: cover; display: block; border-bottom: 1px solid #eee; }
-        .no-photo { width: 100%; height: 320px; background: #f9f9f9; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 12px; text-transform: uppercase; font-family: sans-serif; border-bottom: 1px solid #eee; }
-        
-        /* THE FROZEN OVERLAY FOR WHEN LIVE */
-        .frozen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 320px; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; color: #ff4d4d; font-family: sans-serif; font-weight: bold; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; z-index: 5; border-bottom: 1px solid #eee; }
+        /* THE FROZEN OVERLAY */
+        .frozen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 320px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; color: #ff4d4d; font-family: sans-serif; font-weight: bold; font-size: 18px; text-transform: uppercase; z-index: 5; }
 
         .card-info { padding: 20px; }
-        .item-name { font-size: 18px; margin: 5px 0; font-weight: bold; color: #222; }
-        .item-cat { color: #888; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; font-family: sans-serif; letter-spacing: 1px; }
-        .price { color: #d4af37; font-weight: bold; font-size: 20px; margin-top: 10px; }
-        .sold-badge { position: absolute; top: 15px; right: 15px; background: #222; color: #d4af37; padding: 6px 15px; font-size: 11px; font-weight: bold; font-family: sans-serif; text-transform: uppercase; letter-spacing: 1px; z-index: 10; border-radius: 20px; }
-        .rarity-badge { position: absolute; top: 15px; left: 15px; background: #d4af37; color: #fff; padding: 6px 12px; font-size: 10px; font-weight: bold; font-family: sans-serif; text-transform: uppercase; z-index: 10; border-radius: 4px; }
-
-        /* --- THE POP-UP (MODAL) --- */
-        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-        .modal-content { background: white; max-width: 900px; width: 95%; max-height: 90vh; border-radius: 12px; position: relative; overflow-y: auto; display: flex; flex-direction: row; flex-wrap: wrap; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        .modal-left { flex: 1; min-width: 300px; background: #f9f9f9; display: flex; align-items: center; justify-content: center; }
-        .modal-right { flex: 1.2; padding: 40px; min-width: 300px; text-align: left; }
-        .modal-left img { width: 100%; height: 100%; max-height: 600px; object-fit: cover; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 30px; cursor: pointer; color: #999; z-index: 10; transition: 0.3s; }
-        .close-btn:hover { color: #ff4d4d; }
+        .price { color: #d4af37; font-weight: bold; font-size: 20px; }
         
-        .detail-row { margin-bottom: 15px; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; font-family: sans-serif; }
-        .detail-label { font-size: 10px; text-transform: uppercase; color: #999; letter-spacing: 1px; font-weight: bold; }
-        .detail-value { font-size: 15px; color: #333; margin-top: 4px; }
-        .modal-price { font-size: 36px; color: #d4af37; margin-top: 25px; font-weight: bold; font-family: 'Georgia', serif; }
-        .modal-live-warning { background: #fff5f5; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 15px; border-radius: 8px; font-family: sans-serif; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 20px; line-height: 1.5; }
+        /* MODAL */
+        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
+        .modal-content { background: white; max-width: 800px; width: 90%; border-radius: 12px; position: relative; display: flex; flex-wrap: wrap; overflow: hidden; }
+        .modal-left, .modal-right { flex: 1; min-width: 300px; }
+        .modal-left img { width: 100%; height: 100%; object-fit: cover; }
+        .modal-right { padding: 40px; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 30px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -63,26 +40,13 @@
     <h1>The Jewelry Collection</h1>
 </header>
 
-<div class="search-container">
-    <input type="text" id="searchInput" placeholder="Search by name, stone, collection, or rarity..." onkeyup="runSearch()">
-</div>
-
-<div class="nav" id="categoryNav">
-    <button onclick="filterGallery('All')" class="active">All Pieces</button>
-    <button onclick="filterGallery('Ring')">Rings</button>
-    <button onclick="filterGallery('Necklace')">Necklaces</button>
-    <button onclick="filterGallery('Earrings')">Earrings</button>
-    <button onclick="filterGallery('Bracelet')">Bracelets</button>
-    <button onclick="filterGallery('Set')">Sets</button>
-</div>
-
-<div id="jewelryGrid" class="grid"><div style="text-align:center; grid-column: 1/-1; padding: 50px; color: #d4af37; font-style: italic;">Opening the vault...</div></div>
+<div id="jewelryGrid" class="grid"></div>
 
 <div id="detailsModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeModal()">&times;</span>
-        <div class="modal-left" id="modalImageContainer"></div>
-        <div class="modal-right" id="modalDetailsContainer"></div>
+        <div class="modal-left" id="modalImage"></div>
+        <div class="modal-right" id="modalInfo"></div>
     </div>
 </div>
 
@@ -91,24 +55,16 @@
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let allJewelry = [];
     let isStoreLive = false;
-    let currentCategory = 'All';
 
-    async function loadVault() {
-        const grid = document.getElementById('jewelryGrid');
+    async function loadGallery() {
+        // 1. Get ALL data
+        const { data, error } = await _supabase.from('InventoryHistory').select('*');
+        if (error) return;
 
-        // Pull exactly from the CreatedAt column like we did in Admin
-        const { data, error } = await _supabase.from('InventoryHistory').select('*').order('CreatedAt', { ascending: false });
-        
-        if (error) { 
-            grid.innerHTML = `<div style="text-align:center; grid-column: 1/-1; color: red;">Error connecting to vault. Please refresh.</div>`; 
-            return; 
-        }
-
-        // 1. CHECK THE LIVE SWITCH!
+        // 2. Find the Live/Pause Switch
         const statusItem = data.find(item => item.ItemName === 'SYSTEM_STORE_STATUS');
-        if (statusItem && statusItem.Status === 'Live') {
+        if (statusItem && statusItem.Status === 'Paused') {
             isStoreLive = true;
             document.getElementById('liveBanner').style.display = 'block';
         } else {
@@ -116,43 +72,25 @@
             document.getElementById('liveBanner').style.display = 'none';
         }
 
-        // 2. Filter out the secret switch and any Paused items
-        allJewelry = data.filter(item => item.ItemName !== 'SYSTEM_STORE_STATUS' && item.Status !== 'Paused');
-
-        runSearch(); // Render the gallery
-    }
-
-    function renderGallery(items) {
+        // 3. Filter out the system item and render the jewelry
+        const jewelry = data.filter(item => item.ItemName !== 'SYSTEM_STORE_STATUS');
         const grid = document.getElementById('jewelryGrid');
         grid.innerHTML = "";
 
-        if (items.length === 0) {
-            grid.innerHTML = `<div style="text-align:center; grid-column: 1/-1; padding: 50px; color: #999;">No gems match your search.</div>`;
-            return;
-        }
-
-        items.forEach(item => {
+        jewelry.forEach(item => {
             const card = document.createElement('div');
             card.className = 'card';
             card.onclick = () => showDetails(item);
 
-            const grayBox = `<div class="no-photo">No Photo</div>`;
-            let photo = item.image_url ? `<img src="${item.image_url}" onerror="this.outerHTML='${grayBox}';">` : grayBox;
-
-            // Conditional Badges & Overlays
-            let frozenOverlay = (isStoreLive && item.Status !== 'Sold') ? `<div class="frozen-overlay">Paused for Live</div>` : '';
-            let soldBadge = item.Status === 'Sold' ? `<div class="sold-badge">SOLD</div>` : '';
-            let rarityBadge = (item.Rarity && item.Rarity !== 'Collection Piece' && item.Rarity !== 'Collection') ? `<div class="rarity-badge">${item.Rarity}</div>` : '';
+            let frozenOverlay = (isStoreLive) ? `<div class="frozen-overlay">Paused for Live</div>` : '';
 
             card.innerHTML = `
-                ${rarityBadge}
-                ${soldBadge}
                 ${frozenOverlay}
-                ${photo}
+                <img src="${item.image_url || ''}">
                 <div class="card-info">
-                    <div class="item-cat">${item.ItemCategory || 'Jewelry'} | ${item.Collection || 'Standard'}</div>
-                    <div class="item-name">${item.ItemName || 'Unnamed Treasure'}</div>
-                    <div class="price">$${item.Price || '0'}</div>
+                    <div style="font-size:12px; color:#999; text-transform:uppercase;">${item.Collection}</div>
+                    <div style="font-weight:bold; font-size:18px; margin:5px 0;">${item.ItemName}</div>
+                    <div class="price">$${item.Price}</div>
                 </div>
             `;
             grid.appendChild(card);
@@ -161,73 +99,25 @@
 
     function showDetails(item) {
         const modal = document.getElementById('detailsModal');
-        const imgDiv = document.getElementById('modalImageContainer');
-        const infoDiv = document.getElementById('modalDetailsContainer');
+        document.getElementById('modalImage').innerHTML = `<img src="${item.image_url}">`;
         
-        imgDiv.innerHTML = item.image_url ? `<img src="${item.image_url}">` : `<div class="no-photo" style="height:100%;">No Photo</div>`;
+        let warning = isStoreLive ? `<div style="background:#fff5f5; color:#ff4d4d; padding:10px; border-radius:5px; margin-bottom:15px; font-weight:bold; text-align:center; border:1px solid #ff4d4d;">🛒 CART PAUSED! Heather is Live.</div>` : '';
         
-        // If the store is live, show a warning inside the pop-up so they know why they can't buy it yet!
-        let liveWarning = isStoreLive ? `<div class="modal-live-warning">🛒 CART FROZEN!<br>Heather is currently live on TikTok. Check back after the show to claim items!</div>` : '';
-        
-        let rarityDisplay = (item.Rarity && item.Rarity !== 'Collection') ? item.Rarity : 'Collection Piece';
-
-        infoDiv.innerHTML = `
-            ${liveWarning}
-            <h1 style="margin-top:0;">${item.ItemName || 'Jewelry'}</h1>
-            <div class="detail-row"><div class="detail-label">Rarity / Edition</div><div class="detail-value" style="color:#d4af37; font-weight:bold;">${rarityDisplay}</div></div>
-            <div class="detail-row"><div class="detail-label">Category</div><div class="detail-value">${item.ItemCategory || '---'}</div></div>
-            <div class="detail-row"><div class="detail-label">Collection</div><div class="detail-value">${item.Collection || '---'}</div></div>
-            <div class="detail-row"><div class="detail-label">Stone Details</div><div class="detail-value">${item.Stone || 'Standard Setting'}</div></div>
-            <div class="detail-row"><div class="detail-label">Plating / Metal</div><div class="detail-value">${item.Plating || 'Standard'}</div></div>
-            <div class="detail-row"><div class="detail-label">Notes from Heather</div><div class="detail-value" style="font-style:italic;">${item.Notes || 'No extra notes.'}</div></div>
-            <div class="modal-price">$${item.Price || '0'}</div>
+        document.getElementById('modalInfo').innerHTML = `
+            ${warning}
+            <h2 style="margin-top:0;">${item.ItemName}</h2>
+            <p><strong>Collection:</strong> ${item.Collection}</p>
+            <p><strong>Rarity:</strong> ${item.Rarity}</p>
+            <p><strong>Stone:</strong> ${item.Stone}</p>
+            <h2 style="color:#d4af37;">$${item.Price}</h2>
         `;
-        
         modal.style.display = "flex";
     }
 
-    function closeModal() { 
-        document.getElementById('detailsModal').style.display = "none"; 
-    }
+    function closeModal() { document.getElementById('detailsModal').style.display = "none"; }
+    window.onclick = (e) => { if (e.target.className === 'modal') closeModal(); }
 
-    function filterGallery(category) {
-        currentCategory = category;
-        
-        // Update active button color
-        const buttons = document.querySelectorAll('.nav button');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
-        
-        runSearch();
-    }
-
-    function runSearch() {
-        const term = document.getElementById('searchInput').value.toLowerCase();
-        
-        let filtered = allJewelry.filter(item => {
-            // Check Category First
-            let categoryMatch = (currentCategory === 'All' || item.ItemCategory === currentCategory || (currentCategory === 'Set' && item.ItemCategory && item.ItemCategory.includes('Set')));
-            
-            // Then Check Search Bar
-            let searchMatch = 
-                (item.ItemName || "").toLowerCase().includes(term) || 
-                (item.Stone || "").toLowerCase().includes(term) ||
-                (item.Collection || "").toLowerCase().includes(term) ||
-                (item.Rarity || "").toLowerCase().includes(term);
-                
-            return categoryMatch && searchMatch;
-        });
-
-        renderGallery(filtered);
-    }
-
-    // Close modal if user clicks outside of the white box
-    window.onclick = (event) => { 
-        if (event.target == document.getElementById('detailsModal')) closeModal(); 
-    }
-
-    // Start it up!
-    loadVault();
+    loadGallery();
 </script>
 </body>
 </html>
