@@ -1,78 +1,26 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Heather's Jewelry Collection</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: 'Georgia', serif; background: #fffafb; color: #333; margin: 0; padding: 0; }
-        
-        /* LIVE BANNER */
-        #liveBanner { display: none; background: #ff4d4d; color: white; text-align: center; padding: 15px; font-family: sans-serif; font-weight: bold; font-size: 16px; text-transform: uppercase; letter-spacing: 2px; animation: pulseBanner 2s infinite; position: sticky; top: 0; z-index: 2000; }
-        @keyframes pulseBanner { 0% { background: #ff4d4d; } 50% { background: #ff1a1a; } 100% { background: #ff4d4d; } }
-
-        header { text-align: center; padding: 40px 20px; }
-        h1 { font-weight: 300; text-transform: uppercase; letter-spacing: 3px; margin: 0; }
-
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; max-width: 1200px; margin: auto; padding: 20px; }
-        .card { background: white; border: 1px solid #eee; text-align: center; position: relative; overflow: hidden; transition: 0.3s; border-radius: 8px; cursor: pointer; }
-        .card img { width: 100%; height: 320px; object-fit: cover; display: block; }
-        
-        /* THE FROZEN OVERLAY */
-        .frozen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 320px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; color: #ff4d4d; font-family: sans-serif; font-weight: bold; font-size: 18px; text-transform: uppercase; z-index: 5; }
-
-        .card-info { padding: 20px; }
-        .price { color: #d4af37; font-weight: bold; font-size: 20px; }
-        
-        /* MODAL */
-        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
-        .modal-content { background: white; max-width: 800px; width: 90%; border-radius: 12px; position: relative; display: flex; flex-wrap: wrap; overflow: hidden; }
-        .modal-left, .modal-right { flex: 1; min-width: 300px; }
-        .modal-left img { width: 100%; height: 100%; object-fit: cover; }
-        .modal-right { padding: 40px; }
-        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 30px; cursor: pointer; }
-    </style>
-</head>
-<body>
-
-<div id="liveBanner">🚨 sayhiheather is LIVE ON TIKTOK! Store checkout is paused. 🚨</div>
-
-<header>
-    <h1>The Jewelry Collection</h1>
-</header>
-
-<div id="jewelryGrid" class="grid"></div>
-
-<div id="detailsModal" class="modal">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal()">&times;</span>
-        <div class="modal-left" id="modalImage"></div>
-        <div class="modal-right" id="modalInfo"></div>
-    </div>
-</div>
-
 <script>
+    // --- SET THIS FOR EVERY CUSTOMER ---
+    const MY_HANDLE = 'destashe'; 
+
     const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let isStoreLive = false;
-
     async function loadGallery() {
-        // 1. Get ALL data
-        const { data, error } = await _supabase.from('InventoryHistory').select('*');
+        // 1. Fetch only THIS creator's items
+        const { data, error } = await _supabase.from('InventoryHistory')
+            .select('*')
+            .eq('creator_handle', MY_HANDLE);
+
         if (error) return;
 
-        // 2. Find the Live/Pause Switch
+        // 2. Check THIS creator's live status
         const statusItem = data.find(item => item.ItemName === 'SYSTEM_STORE_STATUS');
-        if (statusItem && statusItem.Status === 'Paused') {
-            isStoreLive = true;
-            document.getElementById('liveBanner').style.display = 'block';
-        } else {
-            isStoreLive = false;
-            document.getElementById('liveBanner').style.display = 'none';
-        }
+        const isStoreLive = statusItem && statusItem.Status === 'Paused';
+        
+        document.getElementById('liveBanner').style.display = isStoreLive ? 'block' : 'none';
 
-        // 3. Filter out the system item and render the jewelry
+        // 3. Render only THIS creator's jewelry
         const jewelry = data.filter(item => item.ItemName !== 'SYSTEM_STORE_STATUS');
         const grid = document.getElementById('jewelryGrid');
         grid.innerHTML = "";
@@ -80,44 +28,10 @@
         jewelry.forEach(item => {
             const card = document.createElement('div');
             card.className = 'card';
-            card.onclick = () => showDetails(item);
-
-            let frozenOverlay = (isStoreLive) ? `<div class="frozen-overlay">Paused for Live</div>` : '';
-
-            card.innerHTML = `
-                ${frozenOverlay}
-                <img src="${item.image_url || ''}">
-                <div class="card-info">
-                    <div style="font-size:12px; color:#999; text-transform:uppercase;">${item.Collection}</div>
-                    <div style="font-weight:bold; font-size:18px; margin:5px 0;">${item.ItemName}</div>
-                    <div class="price">$${item.Price}</div>
-                </div>
-            `;
+            let overlay = isStoreLive ? '<div class="frozen-overlay">Paused for Live</div>' : '';
+            card.innerHTML = `${overlay}<img src="${item.image_url}"><div class="card-info"><div class="price">$${item.Price}</div></div>`;
             grid.appendChild(card);
         });
     }
-
-    function showDetails(item) {
-        const modal = document.getElementById('detailsModal');
-        document.getElementById('modalImage').innerHTML = `<img src="${item.image_url}">`;
-        
-        let warning = isStoreLive ? `<div style="background:#fff5f5; color:#ff4d4d; padding:10px; border-radius:5px; margin-bottom:15px; font-weight:bold; text-align:center; border:1px solid #ff4d4d;">🛒 CART PAUSED! Heather is Live.</div>` : '';
-        
-        document.getElementById('modalInfo').innerHTML = `
-            ${warning}
-            <h2 style="margin-top:0;">${item.ItemName}</h2>
-            <p><strong>Collection:</strong> ${item.Collection}</p>
-            <p><strong>Rarity:</strong> ${item.Rarity}</p>
-            <p><strong>Stone:</strong> ${item.Stone}</p>
-            <h2 style="color:#d4af37;">$${item.Price}</h2>
-        `;
-        modal.style.display = "flex";
-    }
-
-    function closeModal() { document.getElementById('detailsModal').style.display = "none"; }
-    window.onclick = (e) => { if (e.target.className === 'modal') closeModal(); }
-
     loadGallery();
 </script>
-</body>
-</html>
