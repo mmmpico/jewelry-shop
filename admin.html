@@ -7,7 +7,7 @@
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         
-        /* THE NEW LIVE PANEL STYLING */
+        /* THE LIVE PANEL STYLING */
         .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; transition: 0.3s; }
         .live-panel.is-live { background: #fff5f5; border-color: #ff4d4d; box-shadow: 0 0 15px rgba(255, 77, 77, 0.2); }
         .live-status-text { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; letter-spacing: 2px; margin-bottom: 10px; }
@@ -165,16 +165,17 @@
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // LIVE STATUS LOGIC
-    let systemRecordId = null;
+    // BULLETPROOF LIVE STATUS LOGIC
     let isLive = false;
 
     async function checkLiveStatus() {
         const { data, error } = await _supabase.from('InventoryHistory').select('*').eq('ItemName', 'SYSTEM_STORE_STATUS');
         
+        // If it finds the ghost item(s), check if the first one is 'Live'
         if (data && data.length > 0) {
-            systemRecordId = data[0].id;
             isLive = (data[0].Status === 'Live');
+        } else {
+            isLive = false;
         }
         updateLiveUI();
     }
@@ -202,18 +203,13 @@
 
         const newStatus = isLive ? 'Offline' : 'Live';
 
-        if (systemRecordId) {
-            // Update the existing ghost item
-            await _supabase.from('InventoryHistory').update({ Status: newStatus }).eq('id', systemRecordId);
-        } else {
-            // Create the ghost item for the very first time
-            const itemData = {
-                ItemName: 'SYSTEM_STORE_STATUS',
-                ItemCategory: 'System',
-                Status: newStatus
-            };
-            const { data } = await _supabase.from('InventoryHistory').insert([itemData]).select();
-            if (data && data.length > 0) systemRecordId = data[0].id;
+        // MAGIC FIX: This line targets ALL ghost items in your database and syncs them at once
+        const { data } = await _supabase.from('InventoryHistory').update({ Status: newStatus }).eq('ItemName', 'SYSTEM_STORE_STATUS').select();
+
+        // If no ghost items exist yet, it creates the very first one
+        if (!data || data.length === 0) {
+            const itemData = { ItemName: 'SYSTEM_STORE_STATUS', ItemCategory: 'System', Status: newStatus };
+            await _supabase.from('InventoryHistory').insert([itemData]);
         }
 
         isLive = !isLive;
@@ -244,7 +240,7 @@
         tbody.innerHTML = "";
         
         data.forEach(item => {
-            // Hide our secret Ghost Item from the visible inventory table!
+            // Hide the ghost items from the visible inventory table!
             if (item.ItemName === 'SYSTEM_STORE_STATUS') return;
 
             const row = document.createElement('tr');
