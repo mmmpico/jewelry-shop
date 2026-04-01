@@ -6,6 +6,22 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        /* THE NEW LIVE PANEL STYLING */
+        .live-panel { background: #f4f4f4; border: 2px solid #ddd; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 30px; transition: 0.3s; }
+        .live-panel.is-live { background: #fff5f5; border-color: #ff4d4d; box-shadow: 0 0 15px rgba(255, 77, 77, 0.2); }
+        .live-status-text { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; letter-spacing: 2px; margin-bottom: 10px; }
+        .live-panel.is-live .live-status-text { color: #ff4d4d; }
+        .btn-live { background: #222; color: white; border: none; padding: 12px 30px; border-radius: 25px; font-size: 16px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        .btn-live:hover { background: #444; }
+        .live-panel.is-live .btn-live { background: #ff4d4d; animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
         .form-section { border-bottom: 2px solid #eee; padding-bottom: 30px; margin-bottom: 30px; }
         h1 { font-weight: 300; text-transform: uppercase; letter-spacing: 2px; text-align: center; margin-bottom: 30px; }
         .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
@@ -27,6 +43,12 @@
 <body>
 
 <div class="container">
+    
+    <div class="live-panel" id="livePanel">
+        <div class="live-status-text" id="liveStatusText">Store Status: OFFLINE (Items Claimable)</div>
+        <button class="btn-live" id="liveToggleBtn" onclick="toggleLiveStatus()">Checking Status...</button>
+    </div>
+
     <div class="form-section">
         <h1>Inventory Manager</h1>
         
@@ -128,8 +150,7 @@
 
 <script>
     const myCollections = [
-        "Unknown",
-        "Retro",
+        "Unknown", "Retro",
         // --- 2023 ---
         "Originals 2023", "Originals Kids 2023", "Sterling Club 2023", "Lux Diamonds 2023", "Luxe Layers 2023", "Luxe Bands 2023", "Luxe Hoops 2023", "Luxe Boutique 2023", "Delicates 2023", "Charming Hoops 2023", "Simply Studs 2023", "Simply Earring 2023", "Simply Necklace 2023", "Charmelier 2023", "Stack-a-Palooza 2023", "Zen 2023", "Atlantis 2023", "Celestial 2023", "Garden Party 2023", "January 2023 Birthday", "February 2023 Birthday", "March 2023 Birthday", "April 2023 Birthday", "May 2023 Birthday", "June 2023 Birthday", "July 2023 Birthday", "August 2023 Birthday", "September 2023 Birthday", "October 2023 Birthday", "November 2023 Birthday", "December 2023 Birthday", "Valentine's 2023", "Easter 2023", "Spring Stacks 2023", "Summer Stacks 2023", "Fall Stacks 2023", "Halloween Stacks 2023", "Wicked 2023", "Holiday Stacks 2023", "Jewel Candy Holiday 2023",
         // --- 2024 ---
@@ -144,6 +165,62 @@
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // LIVE STATUS LOGIC
+    let systemRecordId = null;
+    let isLive = false;
+
+    async function checkLiveStatus() {
+        const { data, error } = await _supabase.from('InventoryHistory').select('*').eq('ItemName', 'SYSTEM_STORE_STATUS');
+        
+        if (data && data.length > 0) {
+            systemRecordId = data[0].id;
+            isLive = (data[0].Status === 'Live');
+        }
+        updateLiveUI();
+    }
+
+    function updateLiveUI() {
+        const panel = document.getElementById('livePanel');
+        const text = document.getElementById('liveStatusText');
+        const btn = document.getElementById('liveToggleBtn');
+
+        if (isLive) {
+            panel.classList.add('is-live');
+            text.innerText = "🚨 Store Status: LIVE ON TIKTOK (Cart Frozen) 🚨";
+            btn.innerText = "End Live & Unfreeze Store";
+        } else {
+            panel.classList.remove('is-live');
+            text.innerText = "Store Status: OFFLINE (Items Claimable)";
+            btn.innerText = "Go Live on TikTok (Freeze Cart)";
+        }
+    }
+
+    async function toggleLiveStatus() {
+        const btn = document.getElementById('liveToggleBtn');
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+
+        const newStatus = isLive ? 'Offline' : 'Live';
+
+        if (systemRecordId) {
+            // Update the existing ghost item
+            await _supabase.from('InventoryHistory').update({ Status: newStatus }).eq('id', systemRecordId);
+        } else {
+            // Create the ghost item for the very first time
+            const itemData = {
+                ItemName: 'SYSTEM_STORE_STATUS',
+                ItemCategory: 'System',
+                Status: newStatus
+            };
+            const { data } = await _supabase.from('InventoryHistory').insert([itemData]).select();
+            if (data && data.length > 0) systemRecordId = data[0].id;
+        }
+
+        isLive = !isLive;
+        updateLiveUI();
+        btn.disabled = false;
+    }
+
     function setupSearchableList() {
         const list = document.getElementById('collectionOptions');
         myCollections.forEach(col => {
@@ -157,24 +234,19 @@
         const tbody = document.querySelector('#inventoryTable tbody');
         tbody.innerHTML = "<tr><td colspan='8'>Loading database...</td></tr>";
 
-        // FIX: Pointing exactly to your 'CreatedAt' column to sort chronologically!
         const { data, error } = await _supabase.from('InventoryHistory').select('*').order('CreatedAt', { ascending: false });
         
         if (error) { 
-            alert("SUPABASE ERROR: " + error.message);
             tbody.innerHTML = `<tr><td colspan='8' style='color:red; font-weight:bold;'>Error: ${error.message}</td></tr>`;
             return; 
         }
 
-        if (!data || data.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='8'>Database is connected, but no items were found.</td></tr>";
-            return;
-        }
-
         tbody.innerHTML = "";
         
-        // FIX: Removed the reverse trick. Letting Supabase do the heavy lifting.
         data.forEach(item => {
+            // Hide our secret Ghost Item from the visible inventory table!
+            if (item.ItemName === 'SYSTEM_STORE_STATUS') return;
+
             const row = document.createElement('tr');
             const photo = item.image_url ? `<img src="${item.image_url}" class="thumb">` : `<div style="width:60px;height:60px;background:#eee;"></div>`;
             row.innerHTML = `
@@ -236,7 +308,9 @@
         }
     }
 
+    // Initialize Page
     setupSearchableList();
+    checkLiveStatus();
     loadTable();
 </script>
 </body>
