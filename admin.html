@@ -1,27 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Admin - Pro Edition</title>
+    <title>DeStashe Admin - Transaction Engine</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
         var _sb;
 
-        // FIXED LISTS (Locked Dropdowns)
-        const CATEGORIES = ["Ring", "Necklace", "Earrings", "Bracelet", "Stacks", "Set (Mixed)"];
+        // MASTER DROPDOWNS
+        const CATEGORIES = ["Ring", "Necklace", "Earrings", "Bracelet", "Stacks", "Set"];
         const PLATING = ["Gold", "Rose Gold", "Rhodium", "Silver", "Hematite", "Mixed"];
         const RARITY = ["Collection Piece", "Unicorn", "Rare Unicorn", "Diamonds"];
-        const COLLECTIONS = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025", "January 2025 Birthday", "February 2025 Birthday"];
+        const COLLECTIONS = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
 
         window.onload = function() {
             _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            
             _sb.auth.onAuthStateChange((event, session) => {
                 if (session) {
                     document.getElementById('authBox').style.display = 'none';
                     document.getElementById('mainApp').style.display = 'block';
-                    renderDropdowns();
+                    renderUI();
                     loadItems();
                 } else {
                     document.getElementById('authBox').style.display = 'block';
@@ -30,44 +29,36 @@
             });
         };
 
-        function renderDropdowns() {
+        function renderUI() {
             fillSelect('ItemCategory', CATEGORIES);
             fillSelect('Plating', PLATING);
             fillSelect('Rarity', RARITY);
-            
             const list = document.getElementById('cols');
-            list.innerHTML = "";
-            COLLECTIONS.forEach(c => { let o = document.createElement('option'); o.value = c; list.appendChild(o); });
+            list.innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
         }
 
         function fillSelect(id, list) {
-            const el = document.getElementById(id);
-            el.innerHTML = list.map(item => `<option value="${item}">${item}</option>`).join('');
+            document.getElementById(id).innerHTML = list.map(i => `<option value="${i}">${i}</option>`).join('');
         }
 
         async function doLogin() {
-            const btn = document.getElementById('loginBtn');
-            btn.innerText = "Authenticating...";
             const { error } = await _sb.auth.signInWithPassword({
                 email: document.getElementById('email').value,
                 password: document.getElementById('pass').value
             });
-            if (error) { alert(error.message); btn.innerText = "Log In"; }
+            if (error) alert(error.message);
         }
 
         async function uploadItem() {
             const form = document.getElementById('inventoryForm');
-            if (!form.checkValidity()) {
-                alert("Please fill in all required fields (Name, Cost, Retail, and Collection).");
-                return;
-            }
+            if (!form.checkValidity()) return alert("Fill in required fields (*)");
 
             const btn = document.getElementById('saveBtn');
-            btn.innerText = "SAVING TO DATABASE...";
+            btn.innerText = "UPLOADING...";
             btn.disabled = true;
 
             const file = document.getElementById('ItemImage').files[0];
-            let url = "https://via.placeholder.com/150"; // Default if no photo
+            let url = "https://via.placeholder.com/150";
 
             if (file) {
                 const name = `img-${Date.now()}`;
@@ -88,20 +79,19 @@
                 PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value),
                 Price: parseFloat(document.getElementById('Price').value),
                 image_url: url,
-                Status: 'Available', // Visible on site
+                Status: 'Available', // Start as available
                 user_id: user.id,
-                creator_handle: 'destashe' // We will automate this next
+                creator_handle: 'destashe' 
             }]);
 
             if (error) { alert(error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
-            else { location.reload(); }
+            else location.reload();
         }
 
-        async function markAsSold(id) {
-            if (confirm("Mark as Sold? (It will be archived but saved in your history)")) {
-                await _sb.from('InventoryHistory').update({ Status: 'Sold' }).eq('id', id);
-                location.reload();
-            }
+        // --- NEW TRANSACTION LOGIC ---
+        async function updateStatus(id, newStatus) {
+            await _sb.from('InventoryHistory').update({ Status: newStatus }).eq('id', id);
+            location.reload();
         }
 
         async function loadItems() {
@@ -109,18 +99,21 @@
             const { data } = await _sb.from('InventoryHistory')
                 .select('*')
                 .eq('user_id', user.id)
-                .eq('Status', 'Available') // Only show active items in the manager
+                .neq('Status', 'Sold') // Hide sold from active manager
                 .order('CreatedAt', { ascending: false });
 
             const tbody = document.querySelector('#inventoryTable tbody');
             tbody.innerHTML = data.map(item => `
-                <tr>
+                <tr class="status-${item.Status.toLowerCase()}">
                     <td><img src="${item.image_url}" class="thumb"></td>
-                    <td><strong>${item.ItemName}</strong><br><small>${item.Stone || ''}</small></td>
-                    <td>${item.Collection}</td>
-                    <td>$${item.PurchasePrice} / $${item.Price}</td>
+                    <td><strong>${item.ItemName}</strong><br><span class="badge">${item.Status}</span></td>
+                    <td>$${item.Price}</td>
                     <td>
-                        <button onclick="markAsSold('${item.id}')" style="background:#4CAF50; color:white; border:none; padding:5px; border-radius:3px; cursor:pointer;">Mark Sold</button>
+                        ${item.Status === 'Available' ? 
+                            `<button onclick="updateStatus('${item.id}', 'Pending')" class="btn-pending">Make Pending</button>` : 
+                            `<button onclick="updateStatus('${item.id}', 'Available')" class="btn-release">Release</button>
+                             <button onclick="updateStatus('${item.id}', 'Sold')" class="btn-sold">Confirm Sold</button>`
+                        }
                     </td>
                 </tr>
             `).join('');
@@ -138,8 +131,11 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
         .thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
-        /* Required field styling */
-        input:invalid { border-color: #ff4d4d; }
+        .badge { font-size: 10px; background: #eee; padding: 2px 6px; border-radius: 10px; color: #666; }
+        .status-pending { background-color: #fff9e6; }
+        .btn-pending { background: #ffa500; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .btn-sold { background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .btn-release { background: #888; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -148,12 +144,12 @@
     <h2 style="color:#d4af37">Creator Login</h2>
     <input type="email" id="email" class="auth-input" placeholder="Email">
     <input type="password" id="pass" class="auth-input" placeholder="Password">
-    <button id="loginBtn" class="auth-btn" onclick="doLogin()">Log In</button>
+    <button class="auth-btn" onclick="doLogin()">Log In</button>
 </div>
 
 <div class="container" id="mainApp">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h1>Inventory Manager</h1>
+        <h1>Inventory & Sales</h1>
         <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="background:none; border:none; color:#999; cursor:pointer;">Log Out</button>
     </div>
 
@@ -180,7 +176,7 @@
     </form>
 
     <table id="inventoryTable">
-        <thead><tr><th>Photo</th><th>Item</th><th>Collection</th><th>Cost/Retail</th><th>Action</th></tr></thead>
+        <thead><tr><th>Photo</th><th>Status</th><th>Price</th><th>Control</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
