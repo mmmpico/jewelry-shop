@@ -1,18 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Admin - Transaction Engine</title>
+    <title>DeStashe Admin - Fulfillment Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
         var _sb;
-
-        // MASTER DROPDOWNS
-        const CATEGORIES = ["Ring", "Necklace", "Earrings", "Bracelet", "Stacks", "Set"];
-        const PLATING = ["Gold", "Rose Gold", "Rhodium", "Silver", "Hematite", "Mixed"];
-        const RARITY = ["Collection Piece", "Unicorn", "Rare Unicorn", "Diamonds"];
-        const COLLECTIONS = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
 
         window.onload = function() {
             _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -20,7 +14,6 @@
                 if (session) {
                     document.getElementById('authBox').style.display = 'none';
                     document.getElementById('mainApp').style.display = 'block';
-                    renderUI();
                     loadItems();
                 } else {
                     document.getElementById('authBox').style.display = 'block';
@@ -28,18 +21,6 @@
                 }
             });
         };
-
-        function renderUI() {
-            fillSelect('ItemCategory', CATEGORIES);
-            fillSelect('Plating', PLATING);
-            fillSelect('Rarity', RARITY);
-            const list = document.getElementById('cols');
-            list.innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
-        }
-
-        function fillSelect(id, list) {
-            document.getElementById(id).innerHTML = list.map(i => `<option value="${i}">${i}</option>`).join('');
-        }
 
         async function doLogin() {
             const { error } = await _sb.auth.signInWithPassword({
@@ -50,13 +31,8 @@
         }
 
         async function uploadItem() {
-            const form = document.getElementById('inventoryForm');
-            if (!form.checkValidity()) return alert("Fill in required fields (*)");
-
             const btn = document.getElementById('saveBtn');
-            btn.innerText = "UPLOADING...";
-            btn.disabled = true;
-
+            btn.innerText = "Saving...";
             const file = document.getElementById('ItemImage').files[0];
             let url = "https://via.placeholder.com/150";
 
@@ -68,74 +44,87 @@
             }
 
             const { data: { user } } = await _sb.auth.getUser();
-
-            const { error } = await _sb.from('InventoryHistory').insert([{
+            await _sb.from('InventoryHistory').insert([{
                 ItemName: document.getElementById('ItemName').value,
                 ItemCategory: document.getElementById('ItemCategory').value,
                 Collection: document.getElementById('Collection').value,
-                Plating: document.getElementById('Plating').value,
-                Rarity: document.getElementById('Rarity').value,
-                Stone: document.getElementById('Stone').value,
-                PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value),
                 Price: parseFloat(document.getElementById('Price').value),
                 image_url: url,
-                Status: 'Available', // Start as available
+                Status: 'Available',
                 user_id: user.id,
-                creator_handle: 'destashe' 
+                creator_handle: 'destashe'
             }]);
-
-            if (error) { alert(error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
-            else location.reload();
+            location.reload();
         }
 
-        // --- NEW TRANSACTION LOGIC ---
-        async function updateStatus(id, newStatus) {
-            await _sb.from('InventoryHistory').update({ Status: newStatus }).eq('id', id);
+        // CLAIM LOGIC
+        async function claimItem(id) {
+            const buyer = prompt("Buyer Name/Handle:");
+            const bag = prompt("Bag Number:");
+            if (!buyer || !bag) return alert("Buyer and Bag # are required to claim.");
+            
+            await _sb.from('InventoryHistory').update({ 
+                Status: 'Pending', 
+                ClaimedBy: buyer, 
+                BagNumber: bag 
+            }).eq('id', id);
+            location.reload();
+        }
+
+        async function shipItem(id) {
+            const tracking = prompt("Enter Tracking Number:");
+            if (!tracking) return;
+            await _sb.from('InventoryHistory').update({ 
+                Status: 'Sold', 
+                TrackingNumber: tracking 
+            }).eq('id', id);
             location.reload();
         }
 
         async function loadItems() {
             const { data: { user } } = await _sb.auth.getUser();
-            const { data } = await _sb.from('InventoryHistory')
-                .select('*')
-                .eq('user_id', user.id)
-                .neq('Status', 'Sold') // Hide sold from active manager
-                .order('CreatedAt', { ascending: false });
+            const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('Status', 'Sold').order('BagNumber', { ascending: true });
 
             const tbody = document.querySelector('#inventoryTable tbody');
             tbody.innerHTML = data.map(item => `
-                <tr class="status-${item.Status.toLowerCase()}">
+                <tr style="${item.Status === 'Pending' ? 'background:#fff9e6;' : ''}">
                     <td><img src="${item.image_url}" class="thumb"></td>
-                    <td><strong>${item.ItemName}</strong><br><span class="badge">${item.Status}</span></td>
-                    <td>$${item.Price}</td>
+                    <td><strong>${item.ItemName}</strong><br><small>${item.Collection}</small></td>
+                    <td>${item.BagNumber || '--'}</td>
+                    <td>${item.ClaimedBy || 'Available'}</td>
                     <td>
                         ${item.Status === 'Available' ? 
-                            `<button onclick="updateStatus('${item.id}', 'Pending')" class="btn-pending">Make Pending</button>` : 
-                            `<button onclick="updateStatus('${item.id}', 'Available')" class="btn-release">Release</button>
-                             <button onclick="updateStatus('${item.id}', 'Sold')" class="btn-sold">Confirm Sold</button>`
+                            `<button onclick="claimItem('${item.id}')" class="btn-claim">Claim</button>` : 
+                            `<button onclick="shipItem('${item.id}')" class="btn-ship">Ship It</button>
+                             <button onclick="releaseItem('${item.id}')" class="btn-release">X</button>`
                         }
                     </td>
                 </tr>
             `).join('');
         }
+
+        async function releaseItem(id) {
+            if(confirm("Release back to inventory?")) {
+                await _sb.from('InventoryHistory').update({ Status: 'Available', ClaimedBy: null, BagNumber: null }).eq('id', id);
+                location.reload();
+            }
+        }
     </script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: none; }
-        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.1); }
+        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:12px; }
         .auth-input, input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         .auth-btn, .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
-        .row { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
+        .row { display: flex; gap: 15px; margin-bottom: 10px; }
         .row div { flex: 1; }
         label { display: block; font-size: 10px; font-weight: bold; margin-bottom: 4px; color: #999; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
         .thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
-        .badge { font-size: 10px; background: #eee; padding: 2px 6px; border-radius: 10px; color: #666; }
-        .status-pending { background-color: #fff9e6; }
-        .btn-pending { background: #ffa500; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-        .btn-sold { background: #4CAF50; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-        .btn-release { background: #888; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .btn-claim { background: #ffa500; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-ship { background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        .btn-release { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -148,35 +137,24 @@
 </div>
 
 <div class="container" id="mainApp">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h1>Inventory & Sales</h1>
-        <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="background:none; border:none; color:#999; cursor:pointer;">Log Out</button>
+    <h1>Fulfillment Manager</h1>
+    
+    <div class="form-section" style="background:#f9f9f9; padding:20px; border-radius:8px; margin-bottom:30px;">
+        <h3>Add New Item</h3>
+        <div class="row">
+            <div><label>Name</label><input type="text" id="ItemName"></div>
+            <div><label>Category</label><select id="ItemCategory"><option>Ring</option><option>Necklace</option></select></div>
+            <div><label>Collection</label><input type="text" id="Collection"></div>
+            <div><label>Retail $</label><input type="number" id="Price" step="0.01"></div>
+        </div>
+        <div class="row">
+            <div><label>Photo</label><input type="file" id="ItemImage"></div>
+            <div style="display:flex; align-items:flex-end;"><button class="save-btn" id="saveBtn" onclick="uploadItem()">Save Item</button></div>
+        </div>
     </div>
 
-    <form id="inventoryForm">
-        <div class="row">
-            <div style="flex: 2;"><label>Item Name *</label><input type="text" id="ItemName" required></div>
-            <div><label>Category</label><select id="ItemCategory"></select></div>
-            <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
-        </div>
-
-        <div class="row">
-            <div><label>Plating</label><select id="Plating"></select></div>
-            <div style="flex: 1.5;"><label>Stone</label><input type="text" id="Stone"></div>
-            <div><label>Rarity</label><select id="Rarity"></select></div>
-        </div>
-
-        <div class="row">
-            <div><label>Cost ($) *</label><input type="number" id="PurchasePrice" step="0.01" required></div>
-            <div><label>Retail ($) *</label><input type="number" id="Price" step="0.01" required></div>
-            <div><label>Photo</label><input type="file" id="ItemImage"></div>
-        </div>
-        
-        <button type="button" id="saveBtn" class="save-btn" onclick="uploadItem()">Add to Collection</button>
-    </form>
-
     <table id="inventoryTable">
-        <thead><tr><th>Photo</th><th>Status</th><th>Price</th><th>Control</th></tr></thead>
+        <thead><tr><th>Photo</th><th>Item</th><th>Bag #</th><th>Buyer</th><th>Control</th></tr></thead>
         <tbody></tbody>
     </table>
 </div>
