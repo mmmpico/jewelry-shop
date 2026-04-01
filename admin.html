@@ -3,120 +3,28 @@
 <head>
     <title>DeStashe Admin - Master Fulfillment</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-        var _sb;
-
-        window.onload = function() {
-            _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            _sb.auth.onAuthStateChange((event, session) => {
-                if (session) {
-                    document.getElementById('authBox').style.display = 'none';
-                    document.getElementById('mainApp').style.display = 'block';
-                    loadItems();
-                } else {
-                    document.getElementById('authBox').style.display = 'block';
-                    document.getElementById('mainApp').style.display = 'none';
-                }
-            });
-        };
-
-        async function doLogin() {
-            const { error } = await _sb.auth.signInWithPassword({
-                email: document.getElementById('email').value,
-                password: document.getElementById('pass').value
-            });
-            if (error) alert(error.message);
-        }
-
-        // UPDATED LOAD ITEMS WITH CARRIER AND ISSUE LOGIC
-        async function loadItems() {
-            const { data: { user } } = await _sb.auth.getUser();
-            // Show everything NOT "Closed"
-            const { data } = await _sb.from('InventoryHistory')
-                .select('*')
-                .eq('user_id', user.id)
-                .neq('Status', 'Closed')
-                .order('BagNumber', { ascending: true });
-
-            const tbody = document.querySelector('#inventoryTable tbody');
-            tbody.innerHTML = data.map(item => `
-                <tr class="row-${item.Status.toLowerCase()}">
-                    <td><img src="${item.image_url}" class="thumb"></td>
-                    <td>
-                        <strong>${item.ItemName}</strong><br>
-                        <small>Bag: ${item.BagNumber || 'N/A'}</small>
-                    </td>
-                    <td>
-                        <select onchange="updateItemStatus('${item.id}', this.value)" class="status-select">
-                            <option value="Available" ${item.Status === 'Available' ? 'selected' : ''}>Available</option>
-                            <option value="Pending" ${item.Status === 'Pending' ? 'selected' : ''}>Pending (Claimed)</option>
-                            <option value="Shipped" ${item.Status === 'Shipped' ? 'selected' : ''}>Shipped</option>
-                            <option value="Issue" ${item.Status === 'Issue' ? 'selected' : ''}>⚠️ Issue</option>
-                            <option value="Closed" ${item.Status === 'Closed' ? 'selected' : ''}>✅ Closed Out</option>
-                        </select>
-                    </td>
-                    <td>
-                        ${item.Status === 'Shipped' || item.Status === 'Issue' ? 
-                            `<small>${item.Carrier || 'No Carrier'}: ${item.TrackingNumber || 'No Tracking'}</small>` : 
-                            `Buyer: ${item.ClaimedBy || 'None'}`
-                        }
-                    </td>
-                    <td>
-                        <button onclick="editFullDetails('${item.id}')" class="btn-edit">Details</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        async function updateItemStatus(id, newStatus) {
-            let updates = { Status: newStatus };
-            
-            if (newStatus === 'Shipped') {
-                const carrier = prompt("Carrier (USPS/UPS/FedEx):", "USPS");
-                const tracking = prompt("Tracking Number:");
-                if(carrier && tracking) {
-                    updates.Carrier = carrier;
-                    updates.TrackingNumber = tracking;
-                }
-            }
-            
-            if (newStatus === 'Issue') {
-                const note = prompt("What is the issue?");
-                updates.IssueNotes = note;
-            }
-
-            await _sb.from('InventoryHistory').update(updates).eq('id', id);
-            location.reload();
-        }
-
-        // We can build a modal for this later, for now, simple alerts
-        function editFullDetails(id) {
-            alert("This will eventually open a full profile for this specific item/buyer!");
-        }
-
-        async function uploadItem() {
-            // ... (Same upload logic as before)
-            location.reload();
-        }
-    </script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: none; }
-        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:12px; }
-        .auth-input, input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .status-select { padding: 5px; font-size: 12px; border-radius: 4px; }
+        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .auth-input, input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .auth-btn, .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
         
-        /* Row Colors based on Status */
-        .row-pending { background-color: #fff9e6; }
-        .row-shipped { background-color: #e6f3ff; }
-        .row-issue { background-color: #ffe6e6; border-left: 5px solid red; }
+        /* THE LAYOUT WE WORKED ON */
+        .row { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
+        .row div { flex: 1; min-width: 150px; }
+        label { display: block; font-size: 10px; font-weight: bold; margin-bottom: 4px; color: #999; text-transform: uppercase; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
-        .btn-edit { background: #eee; border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        th { color: #aaa; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
+        
+        /* STATUS COLORS */
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .s-available { background: #e6fffa; color: #2c7a7b; }
+        .s-pending { background: #fff9e6; color: #b7791f; }
+        .s-issue { background: #fff5f5; color: #c53030; }
     </style>
 </head>
 <body>
@@ -125,35 +33,182 @@
     <h2 style="color:#d4af37">Creator Login</h2>
     <input type="email" id="email" class="auth-input" placeholder="Email">
     <input type="password" id="pass" class="auth-input" placeholder="Password">
-    <button class="auth-btn" onclick="doLogin()" style="width:100%; padding:15px; background:#222; color:white; border:none; border-radius:6px; cursor:pointer;">Log In</button>
+    <button class="auth-btn" onclick="doLogin()">Log In</button>
 </div>
 
 <div class="container" id="mainApp">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>Fulfillment Command Center</h1>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h1>Inventory & Fulfillment</h1>
         <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="cursor:pointer; border:none; background:none; color:#999;">Log Out</button>
     </div>
 
-    <div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:20px; display:flex; gap:10px;">
-        <input type="text" id="ItemName" placeholder="Item Name" style="margin:0;">
-        <input type="number" id="Price" placeholder="Price" style="margin:0; width:100px;">
-        <input type="file" id="ItemImage" style="margin:0; font-size:10px;">
-        <button onclick="uploadItem()" style="background:#222; color:white; padding:0 20px; border-radius:6px; border:none; cursor:pointer;">Add</button>
-    </div>
+    <form id="inventoryForm" style="background:#f9f9f9; padding:25px; border-radius:12px; border: 1px solid #eee;">
+        <div class="row">
+            <div style="flex: 2;"><label>Item Name *</label><input type="text" id="ItemName" required></div>
+            <div>
+                <label>Category</label>
+                <select id="ItemCategory">
+                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Set</option>
+                </select>
+            </div>
+            <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
+        </div>
+
+        <div class="row">
+            <div>
+                <label>Plating</label>
+                <select id="Plating">
+                    <option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option><option>Hematite</option><option>Mixed</option>
+                </select>
+            </div>
+            <div style="flex: 1.5;"><label>Stone</label><input type="text" id="Stone" placeholder="e.g. Lavender Quartz"></div>
+            <div>
+                <label>Rarity</label>
+                <select id="Rarity">
+                    <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Diamonds</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div><label>Purchase Price (Cost) *</label><input type="number" id="PurchasePrice" step="0.01" required></div>
+            <div><label>Retail Price (Sell) *</label><input type="number" id="Price" step="0.01" required></div>
+            <div><label>Photo</label><input type="file" id="ItemImage"></div>
+        </div>
+        
+        <button type="button" id="saveBtn" class="save-btn" onclick="uploadItem()">Add to Collection</button>
+    </form>
 
     <table id="inventoryTable">
         <thead>
             <tr>
                 <th>Photo</th>
-                <th>Item/Bag</th>
+                <th>Item Details</th>
                 <th>Status</th>
-                <th>Shipping/Buyer Info</th>
-                <th>Action</th>
+                <th>Buyer / Tracking</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
 </div>
 
+<script>
+    const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
+    const COLLECTIONS = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
+    
+    var _sb;
+
+    window.onload = function() {
+        _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        _sb.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                document.getElementById('authBox').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                setupUI();
+                loadItems();
+            } else {
+                document.getElementById('authBox').style.display = 'block';
+                document.getElementById('mainApp').style.display = 'none';
+            }
+        });
+    };
+
+    function setupUI() {
+        const list = document.getElementById('cols');
+        list.innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
+    }
+
+    async function doLogin() {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('pass').value;
+        const { error } = await _sb.auth.signInWithPassword({ email: e, password: p });
+        if (error) alert(error.message);
+    }
+
+    async function uploadItem() {
+        const btn = document.getElementById('saveBtn');
+        const form = document.getElementById('inventoryForm');
+        if (!form.checkValidity()) return alert("Please fill in Name, Collection, and Prices!");
+
+        btn.innerText = "UPLOADING...";
+        btn.disabled = true;
+
+        const file = document.getElementById('ItemImage').files[0];
+        let url = "https://via.placeholder.com/150";
+
+        if (file) {
+            const name = `img-${Date.now()}`;
+            await _sb.storage.from('jewelry-photos').upload(name, file);
+            const { data } = _sb.storage.from('jewelry-photos').getPublicUrl(name);
+            url = data.publicUrl;
+        }
+
+        const { data: { user } } = await _sb.auth.getUser();
+
+        await _sb.from('InventoryHistory').insert([{
+            ItemName: document.getElementById('ItemName').value,
+            ItemCategory: document.getElementById('ItemCategory').value,
+            Collection: document.getElementById('Collection').value,
+            Plating: document.getElementById('Plating').value,
+            Rarity: document.getElementById('Rarity').value,
+            Stone: document.getElementById('Stone').value,
+            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value),
+            Price: parseFloat(document.getElementById('Price').value),
+            image_url: url,
+            Status: 'Available',
+            user_id: user.id,
+            creator_handle: 'destashe'
+        }]);
+        location.reload();
+    }
+
+    async function loadItems() {
+        const { data: { user } } = await _sb.auth.getUser();
+        // FILTER: Don't show the SYSTEM_STORE_STATUS row
+        const { data } = await _sb.from('InventoryHistory')
+            .select('*')
+            .eq('user_id', user.id)
+            .neq('ItemName', 'SYSTEM_STORE_STATUS')
+            .neq('Status', 'Closed')
+            .order('CreatedAt', { ascending: false });
+
+        const tbody = document.querySelector('#inventoryTable tbody');
+        tbody.innerHTML = data.map(item => `
+            <tr class="row-${item.Status.toLowerCase()}">
+                <td><img src="${item.image_url}" class="thumb"></td>
+                <td>
+                    <strong>${item.ItemName}</strong><br>
+                    <small>${item.Collection} | ${item.Stone || 'No Stone'}</small>
+                </td>
+                <td><span class="status-badge s-${item.Status.toLowerCase()}">${item.Status}</span></td>
+                <td>
+                    ${item.Status === 'Available' ? 'Ready for Claim' : 
+                      item.Status === 'Pending' ? `Buyer: ${item.ClaimedBy || 'Unknown'} (Bag ${item.BagNumber || '?'})` : 
+                      `Carrier: ${item.Carrier || '-'} | Track: ${item.TrackingNumber || '-'}`}
+                </td>
+                <td>
+                    <button onclick="manageItem('${item.id}', '${item.Status}')" style="cursor:pointer; border:1px solid #ddd; padding:4px 8px; border-radius:4px;">Update</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function manageItem(id, currentStatus) {
+        if (currentStatus === 'Available') {
+            const buyer = prompt("Buyer Name:");
+            const bag = prompt("Bag Number:");
+            if (buyer && bag) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: buyer, BagNumber: bag }).eq('id', id);
+        } else if (currentStatus === 'Pending') {
+            const carrier = prompt("Carrier (USPS/UPS):", "USPS");
+            const track = prompt("Tracking Number:");
+            if (carrier && track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', Carrier: carrier, TrackingNumber: track }).eq('id', id);
+        } else {
+            if (confirm("Close this item out?")) await _sb.from('InventoryHistory').update({ Status: 'Closed' }).eq('id', id);
+        }
+        location.reload();
+    }
+</script>
 </body>
 </html>
