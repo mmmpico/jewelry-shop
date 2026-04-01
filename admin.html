@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Admin - FIXED</title>
+    <title>DeStashe Admin - Master Manager</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: none; }
         #authBox { max-width: 400px; margin: 100px auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
         .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         .auth-btn { width: 100%; padding: 12px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
@@ -13,9 +13,9 @@
         .row div { flex: 1; min-width: 150px; }
         label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 25px; }
-        th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }
+        th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; font-size: 13px; }
         img.thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
     </style>
 </head>
@@ -28,28 +28,46 @@
     <button class="auth-btn" onclick="doLogin()">Log In</button>
 </div>
 
-<div class="container" id="mainApp" style="display:none;">
+<div class="container" id="mainApp">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h1>Inventory Manager</h1>
-        <button onclick="doLogout()">Log Out</button>
+        <button onclick="doLogout()" style="cursor:pointer; border:1px solid #ddd; padding:5px 10px; border-radius:5px;">Log Out</button>
     </div>
 
     <div class="form-section">
         <div class="row">
             <div style="flex: 2;"><label>Item Name</label><input type="text" id="ItemName"></div>
-            <div><label>Category</label><select id="ItemCategory"><option>Ring</option><option>Necklace</option><option>Earrings</option><option>Stacks</option></select></div>
+            <div>
+                <label>Category</label>
+                <select id="ItemCategory">
+                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Set</option>
+                </select>
+            </div>
             <div><label>Collection</label><input list="cols" id="Collection"><datalist id="cols"></datalist></div>
         </div>
+
         <div class="row">
-            <div><label>Plating</label><select id="Plating"><option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option></select></div>
-            <div style="flex: 1.5;"><label>Stone</label><input type="text" id="Stone"></div>
-            <div><label>Rarity</label><select id="Rarity"><option>Collection Piece</option><option>Unicorn</option><option>Diamonds</option></select></div>
+            <div>
+                <label>Plating</label>
+                <select id="Plating">
+                    <option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option><option>Hematite</option><option>Mixed</option>
+                </select>
+            </div>
+            <div style="flex: 1.5;"><label>Stone</label><input type="text" id="Stone" placeholder="e.g. Blue Zircon"></div>
+            <div>
+                <label>Rarity</label>
+                <select id="Rarity">
+                    <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Diamonds</option>
+                </select>
+            </div>
         </div>
+
         <div class="row">
             <div><label>Cost ($)</label><input type="number" id="PurchasePrice" step="0.01"></div>
             <div><label>Retail ($)</label><input type="number" id="Price" step="0.01"></div>
             <div><label>Photo</label><input type="file" id="ItemImage"></div>
         </div>
+        
         <button class="save-btn" onclick="uploadItem()">Add to My Collection</button>
     </div>
 
@@ -61,13 +79,14 @@
 
 <script>
     const MY_HANDLE = 'destashe'; 
-    const URL = 'https://fnlgermttuaibfvmbite.supabase.co';
-    const KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-    const _sb = supabase.createClient(URL, KEY);
+    const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
+    
+    // Initialize Supabase
+    const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const collections = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Originals 2025"];
+    const collections = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
 
-    // Monitor Session
     _sb.auth.onAuthStateChange((event, session) => {
         if (session) {
             document.getElementById('authBox').style.display = 'none';
@@ -110,37 +129,13 @@
     }
 
     async function uploadItem() {
+        const btn = document.querySelector('.save-btn');
+        btn.innerText = "Saving...";
+        btn.disabled = true;
+
         const file = document.getElementById('ItemImage').files[0];
         let url = "";
         if (file) {
             const name = MY_HANDLE + '-' + Date.now() + '-' + file.name;
             await _sb.storage.from('jewelry-photos').upload(name, file);
-            const { data } = _sb.storage.from('jewelry-photos').getPublicUrl(name);
-            url = data.publicUrl;
-        }
-
-        const { data: userSession } = await _sb.auth.getSession();
-        
-        await _sb.from('InventoryHistory').insert([{
-            ItemName: document.getElementById('ItemName').value,
-            ItemCategory: document.getElementById('ItemCategory').value,
-            Collection: document.getElementById('Collection').value,
-            Plating: document.getElementById('Plating').value,
-            Rarity: document.getElementById('Rarity').value,
-            Stone: document.getElementById('Stone').value,
-            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
-            Price: parseFloat(document.getElementById('Price').value) || 0,
-            image_url: url,
-            Status: 'Available',
-            creator_handle: MY_HANDLE,
-            user_id: userSession.session.user.id
-        }]);
-        location.reload();
-    }
-
-    async function deleteItem(id) {
-        if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
-    }
-</script>
-</body>
-</html>
+            const { data
