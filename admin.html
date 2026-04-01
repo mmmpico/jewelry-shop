@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Admin - Master Fulfillment</title>
+    <title>DeStashe Admin - Master Command</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
@@ -10,7 +10,6 @@
         .auth-input, input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .auth-btn, .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
         
-        /* THE LAYOUT WE WORKED ON */
         .row { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 150px; }
         label { display: block; font-size: 10px; font-weight: bold; margin-bottom: 4px; color: #999; text-transform: uppercase; }
@@ -20,11 +19,11 @@
         th { color: #aaa; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
         .thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
         
-        /* STATUS COLORS */
         .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
         .s-available { background: #e6fffa; color: #2c7a7b; }
-        .s-pending { background: #fff9e6; color: #b7791f; }
-        .s-issue { background: #fff5f5; color: #c53030; }
+        .s-pending { background: #fff9e6; color: #b7791f; border: 1px solid #fbd38d; }
+        .s-shipped { background: #ebf8ff; color: #2b6cb0; }
+        .s-issue { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
     </style>
 </head>
 <body>
@@ -44,14 +43,14 @@
 
     <form id="inventoryForm" style="background:#f9f9f9; padding:25px; border-radius:12px; border: 1px solid #eee;">
         <div class="row">
-            <div style="flex: 2;"><label>Item Name *</label><input type="text" id="ItemName" required></div>
+            <div style="flex: 2;"><label>Item Name *</label><input type="text" id="ItemName" required placeholder="e.g. Midnight Garden Ring"></div>
             <div>
                 <label>Category</label>
                 <select id="ItemCategory">
-                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Set</option>
+                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Necklace Set</option><option>Earring Set</option><option>Stacks</option><option>Set (Mixed)</option>
                 </select>
             </div>
-            <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
+            <div><label>Collection *</label><input list="cols" id="Collection" required placeholder="Select or Type..."><datalist id="cols"></datalist></div>
         </div>
 
         <div class="row">
@@ -61,11 +60,11 @@
                     <option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option><option>Hematite</option><option>Mixed</option>
                 </select>
             </div>
-            <div style="flex: 1.5;"><label>Stone</label><input type="text" id="Stone" placeholder="e.g. Lavender Quartz"></div>
+            <div style="flex: 1.5;"><label>Stone</label><input type="text" id="Stone" placeholder="e.g. Fire Opal"></div>
             <div>
                 <label>Rarity</label>
                 <select id="Rarity">
-                    <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Diamonds</option>
+                    <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Ultra Rare Unicorn</option><option>Diamonds</option>
                 </select>
             </div>
         </div>
@@ -73,7 +72,7 @@
         <div class="row">
             <div><label>Purchase Price (Cost) *</label><input type="number" id="PurchasePrice" step="0.01" required></div>
             <div><label>Retail Price (Sell) *</label><input type="number" id="Price" step="0.01" required></div>
-            <div><label>Photo</label><input type="file" id="ItemImage"></div>
+            <div><label>Photo</label><input type="file" id="ItemImage" accept="image/*"></div>
         </div>
         
         <button type="button" id="saveBtn" class="save-btn" onclick="uploadItem()">Add to Collection</button>
@@ -85,7 +84,7 @@
                 <th>Photo</th>
                 <th>Item Details</th>
                 <th>Status</th>
-                <th>Buyer / Tracking</th>
+                <th>Buyer / Bag / Tracking</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -96,7 +95,7 @@
 <script>
     const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-    const COLLECTIONS = ["Originals 2024", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Originals 2025"];
+    const COLLECTIONS = ["Originals 2023", "Originals 2024", "Originals 2025", "Originals 2026", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday"];
     
     var _sb;
 
@@ -130,7 +129,7 @@
     async function uploadItem() {
         const btn = document.getElementById('saveBtn');
         const form = document.getElementById('inventoryForm');
-        if (!form.checkValidity()) return alert("Please fill in Name, Collection, and Prices!");
+        if (!form.checkValidity()) return alert("Missing required info!");
 
         btn.innerText = "UPLOADING...";
         btn.disabled = true;
@@ -147,7 +146,7 @@
 
         const { data: { user } } = await _sb.auth.getUser();
 
-        await _sb.from('InventoryHistory').insert([{
+        const { error } = await _sb.from('InventoryHistory').insert([{
             ItemName: document.getElementById('ItemName').value,
             ItemCategory: document.getElementById('ItemCategory').value,
             Collection: document.getElementById('Collection').value,
@@ -161,12 +160,14 @@
             user_id: user.id,
             creator_handle: 'destashe'
         }]);
-        location.reload();
+
+        if (error) { alert(error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
+        else { location.reload(); }
     }
 
     async function loadItems() {
         const { data: { user } } = await _sb.auth.getUser();
-        // FILTER: Don't show the SYSTEM_STORE_STATUS row
+        // Hide SYSTEM status and CLOSED items to keep view clean
         const { data } = await _sb.from('InventoryHistory')
             .select('*')
             .eq('user_id', user.id)
@@ -189,7 +190,8 @@
                       `Carrier: ${item.Carrier || '-'} | Track: ${item.TrackingNumber || '-'}`}
                 </td>
                 <td>
-                    <button onclick="manageItem('${item.id}', '${item.Status}')" style="cursor:pointer; border:1px solid #ddd; padding:4px 8px; border-radius:4px;">Update</button>
+                    <button onclick="manageItem('${item.id}', '${item.Status}')" style="cursor:pointer; border:1px solid #ddd; padding:4px 8px; border-radius:4px; font-size:11px;">UPDATE STATUS</button>
+                    <button onclick="deleteMistake('${item.id}')" style="cursor:pointer; border:none; background:none; color:red; font-size:10px; margin-left:5px;">Delete</button>
                 </td>
             </tr>
         `).join('');
@@ -197,17 +199,29 @@
 
     async function manageItem(id, currentStatus) {
         if (currentStatus === 'Available') {
-            const buyer = prompt("Buyer Name:");
+            const buyer = prompt("Buyer Name/Social Handle:");
             const bag = prompt("Bag Number:");
             if (buyer && bag) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: buyer, BagNumber: bag }).eq('id', id);
         } else if (currentStatus === 'Pending') {
-            const carrier = prompt("Carrier (USPS/UPS):", "USPS");
-            const track = prompt("Tracking Number:");
-            if (carrier && track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', Carrier: carrier, TrackingNumber: track }).eq('id', id);
-        } else {
-            if (confirm("Close this item out?")) await _sb.from('InventoryHistory').update({ Status: 'Closed' }).eq('id', id);
+            const choice = prompt("Type 'SHIP' to add tracking, or 'RELEASE' to restock item:").toUpperCase();
+            if (choice === 'SHIP') {
+                const carrier = prompt("Carrier (USPS/UPS):", "USPS");
+                const track = prompt("Tracking Number:");
+                if (carrier && track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', Carrier: carrier, TrackingNumber: track }).eq('id', id);
+            } else if (choice === 'RELEASE') {
+                await _sb.from('InventoryHistory').update({ Status: 'Available', ClaimedBy: null, BagNumber: null }).eq('id', id);
+            }
+        } else if (currentStatus === 'Shipped') {
+            if (confirm("Move to Closed Out? (Transaction finished)")) await _sb.from('InventoryHistory').update({ Status: 'Closed' }).eq('id', id);
         }
         location.reload();
+    }
+
+    async function deleteMistake(id) {
+        if (confirm("Delete this item permanently? Only do this if it was a mistake entry.")) {
+            await _sb.from('InventoryHistory').delete().eq('id', id);
+            location.reload();
+        }
     }
 </script>
 </body>
