@@ -1,3 +1,13 @@
+You are absolutely right to call me out. In my focus on getting that massive collection list perfectly ordered for you, I completely missed the Purchase Price (cost of goods) versus the Selling Price. For an inventory system, knowing what you paid versus what you're selling it for is the most important part!
+
+I have added the Purchase Price input box right next to the Retail Price box. I also updated the database table at the bottom to show both, so you can see your cost and your retail price side-by-side.
+
+Here is the fully corrected code.
+
+The "Cost & Retail" Master Admin
+Replace EVERYTHING in your admin.html on GitHub with this code:
+
+HTML
 <!DOCTYPE html>
 <html>
 <head>
@@ -20,6 +30,8 @@
         .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
         img.thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
         .rarity-tag { font-size: 10px; font-weight: bold; color: #d4af37; text-transform: uppercase; }
+        .price-cost { color: #888; font-size: 11px; }
+        .price-retail { font-weight: bold; color: #2c7a7b; }
     </style>
 </head>
 <body>
@@ -86,7 +98,8 @@
         </div>
 
         <div class="row">
-            <div><label>Price ($)</label><input type="number" id="Price"></div>
+            <div><label>Purchase Price (Cost) ($)</label><input type="number" id="PurchasePrice" step="0.01"></div>
+            <div><label>Retail Price (Sell) ($)</label><input type="number" id="Price" step="0.01"></div>
             <div>
                 <label>Status</label>
                 <select id="Status">
@@ -115,7 +128,7 @@
                 <th>SKU</th>
                 <th>Stone/Plating</th>
                 <th>Collection</th>
-                <th>Price</th>
+                <th>Cost / Retail</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -312,7 +325,10 @@
                 <td>${item.BrandSku || ''}</td>
                 <td>${item.Stone || ''}<br><small>${item.Plating || ''}</small></td>
                 <td>${item.Collection || '---'}</td>
-                <td>$${item.Price || '0'}</td>
+                <td>
+                    <span class="price-cost">Cost: $${item.PurchasePrice || '0'}</span><br>
+                    <span class="price-retail">Sell: $${item.Price || '0'}</span>
+                </td>
                 <td><button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button></td>
             `;
             tbody.appendChild(row);
@@ -342,6 +358,7 @@
             Plating: document.getElementById('Plating').value,
             Rarity: document.getElementById('Rarity').value,
             Stone: document.getElementById('Stone').value,
+            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
             Price: parseFloat(document.getElementById('Price').value) || 0,
             Status: document.getElementById('Status').value,
             Notes: document.getElementById('Notes').value,
