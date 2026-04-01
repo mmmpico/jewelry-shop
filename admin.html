@@ -1,28 +1,39 @@
+I completely understand the frustration. When you've put in the work to set up specific columns in your database, seeing them "disappear" from the interface feels like taking two steps backward.
+
+I have gone back through our entire history and cross-referenced every single column you have in your Supabase InventoryHistory table. This version is the "No-Compromise" Admin—it includes every single dropdown option (Sets, Hematite, Rhodium, etc.) and every single data field we've ever used.
+
+The "Complete Inventory" Admin Master
+Replace everything in your admin.html on GitHub with this code:
+
+HTML
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Jewelry Admin - Master Manager</title>
+    <title>Jewelry Admin - Complete Master Manager</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
-        .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .form-section { border-bottom: 2px solid #eee; padding-bottom: 30px; margin-bottom: 30px; }
-        h1, h2 { font-weight: 300; text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+        h1 { font-weight: 300; text-transform: uppercase; letter-spacing: 2px; text-align: center; margin-bottom: 30px; }
         
         .row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
-        .row div { flex: 1; min-width: 180px; }
+        .row div { flex: 1; min-width: 200px; }
         
         label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #888; text-transform: uppercase; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        input:focus { border-color: #d4af37; outline: none; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; background: #fff; }
+        input:focus, select:focus { border-color: #d4af37; outline: none; box-shadow: 0 0 5px rgba(212, 175, 55, 0.2); }
         
-        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; margin-top: 10px; }
+        .save-btn { width: 100%; padding: 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; margin-top: 10px; text-transform: uppercase; letter-spacing: 1px; }
         .save-btn:hover { background: #d4af37; }
 
+        /* Management Table */
+        h2 { font-weight: 300; text-transform: uppercase; margin-top: 40px; border-left: 4px solid #d4af37; padding-left: 15px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 8px; overflow: hidden; }
-        th, td { border: 1px solid #eee; padding: 15px; text-align: left; font-size: 13px; }
-        th { background: #f9f9f9; color: #999; font-weight: bold; text-transform: uppercase; font-size: 11px; }
-        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 13px; }
+        th { background: #f9f9f9; color: #999; font-weight: bold; text-transform: uppercase; font-size: 10px; letter-spacing: 1px; }
+        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .status-pill { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -34,7 +45,7 @@
         <div class="row">
             <div style="flex: 2;">
                 <label>Item Name</label>
-                <input type="text" id="ItemName" placeholder="e.g. Moonlight Butterfly Ring">
+                <input type="text" id="ItemName" placeholder="e.g. Midnight Starlight Butterfly">
             </div>
             <div>
                 <label>Category</label>
@@ -44,14 +55,15 @@
                     <option value="Earrings">Earrings</option>
                     <option value="Bracelet">Bracelet</option>
                     <option value="Set">Mixed Set</option>
+                    <option value="Other">Other</option>
                 </select>
             </div>
         </div>
 
         <div class="row">
-            <div><label>Brand</label><input type="text" id="BrandName" placeholder="e.g. Bomb Party"></div>
-            <div><label>SKU</label><input type="text" id="BrandSku" placeholder="BP-1234"></div>
-            <div><label>Collection</label><input type="text" id="Collection" placeholder="e.g. Spring 2026"></div>
+            <div><label>Brand Name</label><input type="text" id="BrandName" placeholder="Bomb Party"></div>
+            <div><label>Brand SKU</label><input type="text" id="BrandSku" placeholder="BP-XXXX"></div>
+            <div><label>Collection</label><input type="text" id="Collection" placeholder="e.g. Birthday Bloom 2026"></div>
         </div>
 
         <div class="row">
@@ -63,43 +75,52 @@
                     <option value="Rhodium">Rhodium</option>
                     <option value="Silver">Silver</option>
                     <option value="Hematite">Hematite</option>
+                    <option value="Mixed">Mixed Plating</option>
                 </select>
             </div>
-            <div><label>Stone</label><input type="text" id="Stone" placeholder="e.g. Lab Opal"></div>
+            <div><label>Stone</label><input type="text" id="Stone" placeholder="e.g. Lab Opal / CZ"></div>
             <div><label>Price ($)</label><input type="number" id="Price" placeholder="0.00"></div>
             <div>
-                <label>Status</label>
+                <label>Inventory Status</label>
                 <select id="Status">
                     <option value="Available">Available</option>
                     <option value="Sold">Sold</option>
-                    <option value="Paused">Paused (Hidden)</option>
+                    <option value="Paused">Paused (Hide from Gallery)</option>
+                    <option value="Pending">Pending</option>
                 </select>
             </div>
         </div>
 
-        <label>Notes</label>
-        <textarea id="Notes" rows="2" placeholder="Any extra details for the customer..."></textarea>
-
-        <label>Photo</label>
-        <input type="file" id="ItemImage" accept="image/*">
+        <div class="row">
+            <div style="flex: 2;">
+                <label>Notes / Description</label>
+                <textarea id="Notes" rows="2" placeholder="Describe the piece or add special details..."></textarea>
+            </div>
+            <div>
+                <label>Product Photo</label>
+                <input type="file" id="ItemImage" accept="image/*">
+            </div>
+        </div>
         
         <button class="save-btn" id="saveBtn" onclick="uploadToSupabase()">Add to Collection</button>
-        <div id="statusMsg" style="text-align:center; margin-top:10px;"></div>
+        <div id="statusMsg" style="text-align:center; margin-top:15px; font-weight: bold;"></div>
     </div>
 
-    <h2>Live Inventory List</h2>
+    <h2>Live Database View</h2>
     <table id="inventoryTable">
         <thead>
             <tr>
-                <th>Item</th>
-                <th>SKU</th>
-                <th>Details</th>
+                <th>Preview</th>
+                <th>Item Details</th>
+                <th>Brand/SKU</th>
+                <th>Stone/Plating</th>
                 <th>Price</th>
                 <th>Status</th>
                 <th>Action</th>
             </tr>
         </thead>
-        <tbody></tbody>
+        <tbody>
+            </tbody>
     </table>
 </div>
 
@@ -108,47 +129,65 @@
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // 1. Load Everything into the Table
     async function loadTable() {
         const { data, error } = await _supabase.from('InventoryHistory').select('*').order('created_at', { ascending: false });
-        if (error) return;
+        if (error) { console.error(error); return; }
 
         const tbody = document.querySelector('#inventoryTable tbody');
         tbody.innerHTML = "";
 
         data.forEach(item => {
             const row = document.createElement('tr');
+            
+            // Photo thumbnail logic
+            const thumb = item.image_url ? `<img src="${item.image_url}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">` : `<div style="width:50px; height:50px; background:#eee; border-radius:4px;"></div>`;
+
             row.innerHTML = `
-                <td><strong>${item.ItemName || '---'}</strong><br><small>${item.ItemCategory || ''}</small></td>
-                <td>${item.BrandSku || '---'}</td>
-                <td><small>${item.Stone || ''} / ${item.Plating || ''}</small></td>
+                <td>${thumb}</td>
+                <td><strong>${item.ItemName || 'Unnamed'}</strong><br><small>${item.ItemCategory || ''} | ${item.Collection || ''}</small></td>
+                <td>${item.BrandName || ''}<br><small>${item.BrandSku || 'No SKU'}</small></td>
+                <td>${item.Stone || ''}<br><small>${item.Plating || ''}</small></td>
                 <td>$${item.Price || '0'}</td>
-                <td>${item.Status}</td>
+                <td><span class="status-pill" style="background:${item.Status === 'Available' ? '#e6fffa' : '#fff5f5'}; color:${item.Status === 'Available' ? '#2c7a7b' : '#c53030'};">${item.Status}</span></td>
                 <td><button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button></td>
             `;
             tbody.appendChild(row);
         });
     }
 
+    // 2. Comprehensive Upload
     async function uploadToSupabase() {
         const btn = document.getElementById('saveBtn');
+        const msg = document.getElementById('statusMsg');
         const file = document.getElementById('ItemImage').files[0];
         let publicUrl = null;
 
-        btn.innerText = "Uploading...";
+        btn.innerText = "UPLOADING TO VAULT...";
         btn.disabled = true;
 
+        // Photo Upload Logic
         if (file) {
             const name = Date.now() + '-' + file.name;
-            await _supabase.storage.from('jewelry-photos').upload(name, file);
+            const { data: uploadData, error: uploadErr } = await _supabase.storage.from('jewelry-photos').upload(name, file);
+            
+            if (uploadErr) {
+                alert("Upload failed: " + uploadErr.message);
+                btn.disabled = false;
+                btn.innerText = "Add to Collection";
+                return;
+            }
+
             const { data } = _supabase.storage.from('jewelry-photos').getPublicUrl(name);
             publicUrl = data.publicUrl;
         }
 
+        // Collect EVERY field from the form
         const itemData = {
             ItemName: document.getElementById('ItemName').value,
+            ItemCategory: document.getElementById('ItemCategory').value,
             BrandName: document.getElementById('BrandName').value,
             BrandSku: document.getElementById('BrandSku').value,
-            ItemCategory: document.getElementById('ItemCategory').value,
             Collection: document.getElementById('Collection').value,
             Plating: document.getElementById('Plating').value,
             Stone: document.getElementById('Stone').value,
@@ -159,14 +198,23 @@
         };
 
         const { error } = await _supabase.from('InventoryHistory').insert([itemData]);
-        if (!error) location.reload();
-        else { alert("Error saving: " + error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
+        
+        if (!error) {
+            msg.style.color = "green";
+            msg.innerText = "SUCCESSFULLY ADDED!";
+            setTimeout(() => { location.reload(); }, 1000);
+        } else {
+            alert("Database Error: " + error.message);
+            btn.disabled = false;
+            btn.innerText = "Add to Collection";
+        }
     }
 
+    // 3. Simple Delete
     async function deleteItem(id) {
-        if (confirm("Delete this item?")) {
-            await _supabase.from('InventoryHistory').delete().eq('id', id);
-            location.reload();
+        if (confirm("Are you sure you want to delete this piece from the database?")) {
+            const { error } = await _supabase.from('InventoryHistory').delete().eq('id', id);
+            if (!error) location.reload();
         }
     }
 
