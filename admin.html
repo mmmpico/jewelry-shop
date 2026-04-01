@@ -1,29 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Jewelry Admin - Manage Inventory</title>
+    <title>Jewelry Admin - Master Manager</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: sans-serif; background: #f4f4f4; padding: 20px; color: #333; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1, h2 { font-weight: 300; text-transform: uppercase; letter-spacing: 1px; }
-        
-        /* Form Styling */
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .form-section { border-bottom: 2px solid #eee; padding-bottom: 30px; margin-bottom: 30px; }
-        .row { display: flex; gap: 15px; margin-bottom: 10px; }
-        .row div { flex: 1; }
-        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #666; }
+        .row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .row div { flex: 1; min-width: 150px; }
+        label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #666; text-transform: uppercase; }
         input, select, textarea { padding: 10px; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-        
-        .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .save-btn:hover { background: #d4af37; }
-
-        /* Inventory Table Styling */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
-        th { background: #fafafa; color: #888; font-size: 12px; text-transform: uppercase; }
-        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-        .btn-edit { background: #4da6ff; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background: #fafafa; color: #888; text-transform: uppercase; }
+        .btn-delete { background: #ff4d4d; color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -31,13 +25,12 @@
 <div class="container">
     <div class="form-section">
         <h1>Inventory Manager</h1>
+        
         <div class="row">
-            <div>
+            <div style="flex: 2;">
                 <label>Item Name</label>
-                <input type="text" id="ItemName" placeholder="e.g. Diamond Butterfly">
+                <input type="text" id="ItemName">
             </div>
-        </div>
-        <div class="row">
             <div>
                 <label>Category</label>
                 <select id="ItemCategory">
@@ -47,25 +40,35 @@
                     <option value="Bracelet">Bracelet</option>
                 </select>
             </div>
-            <div>
-                <label>Price ($)</label>
-                <input type="number" id="Price" placeholder="0.00">
-            </div>
+        </div>
+
+        <div class="row">
+            <div><label>Brand</label><input type="text" id="BrandName"></div>
+            <div><label>SKU</label><input type="text" id="BrandSku"></div>
+            <div><label>Collection</label><input type="text" id="Collection"></div>
+        </div>
+
+        <div class="row">
+            <div><label>Plating</label><input type="text" id="Plating"></div>
+            <div><label>Stone</label><input type="text" id="Stone"></div>
+            <div><label>Price ($)</label><input type="number" id="Price"></div>
             <div>
                 <label>Status</label>
                 <select id="Status">
                     <option value="Available">Available</option>
                     <option value="Sold">Sold</option>
-                    <option value="Paused">Paused (Hidden)</option>
+                    <option value="Paused">Paused</option>
                 </select>
             </div>
         </div>
-        
+
+        <label>Notes</label>
+        <textarea id="Notes" rows="2"></textarea>
+
         <label>Photo</label>
         <input type="file" id="ItemImage" accept="image/*">
         
         <button class="save-btn" onclick="uploadToSupabase()">Add to Collection</button>
-        <div id="statusMsg" style="text-align:center; margin-top:10px;"></div>
     </div>
 
     <h2>Current Inventory</h2>
@@ -73,14 +76,14 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>SKU</th>
                 <th>Category</th>
                 <th>Price</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Action</th>
             </tr>
         </thead>
-        <tbody>
-            </tbody>
+        <tbody></tbody>
     </table>
 </div>
 
@@ -89,10 +92,9 @@
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // 1. Load the Management Table
     async function loadTable() {
         const { data, error } = await _supabase.from('InventoryHistory').select('*').order('created_at', { ascending: false });
-        if (error) return;
+        if (error) { console.error(error); return; }
 
         const tbody = document.querySelector('#inventoryTable tbody');
         tbody.innerHTML = "";
@@ -100,26 +102,20 @@
         data.forEach(item => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${item.ItemName || 'Unnamed'}</td>
-                <td>${item.ItemCategory}</td>
-                <td>$${item.Price}</td>
-                <td>${item.Status}</td>
-                <td>
-                    <button class="btn-edit" onclick="editPrice('${item.id}', '${item.ItemName}', ${item.Price})">Price</button>
-                    <button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button>
-                </td>
+                <td><strong>${item.ItemName || '---'}</strong><br><small>${item.Stone || ''} ${item.Plating || ''}</small></td>
+                <td>${item.BrandSku || '---'}</td>
+                <td>${item.ItemCategory || '---'}</td>
+                <td>$${item.Price || '0'}</td>
+                <td>${item.Status || 'Available'}</td>
+                <td><button class="btn-delete" onclick="deleteItem('${item.id}')">Delete</button></td>
             `;
             tbody.appendChild(row);
         });
     }
 
-    // 2. Add New Item
     async function uploadToSupabase() {
-        const msg = document.getElementById('statusMsg');
         const file = document.getElementById('ItemImage').files[0];
         let publicUrl = null;
-
-        msg.innerText = "Processing...";
 
         if (file) {
             const name = Date.now() + '-' + file.name;
@@ -130,34 +126,25 @@
 
         const itemData = {
             ItemName: document.getElementById('ItemName').value,
+            BrandName: document.getElementById('BrandName').value,
+            BrandSku: document.getElementById('BrandSku').value,
             ItemCategory: document.getElementById('ItemCategory').value,
+            Collection: document.getElementById('Collection').value,
+            Plating: document.getElementById('Plating').value,
+            Stone: document.getElementById('Stone').value,
             Price: parseFloat(document.getElementById('Price').value) || 0,
             Status: document.getElementById('Status').value,
+            Notes: document.getElementById('Notes').value,
             image_url: publicUrl
         };
 
         const { error } = await _supabase.from('InventoryHistory').insert([itemData]);
-        if (error) {
-            msg.innerText = "Error: " + error.message;
-        } else {
-            msg.innerText = "Success!";
-            location.reload();
-        }
+        if (!error) location.reload();
     }
 
-    // 3. Delete Item
     async function deleteItem(id) {
-        if (confirm("Delete this item permanently?")) {
+        if (confirm("Permanently delete this item?")) {
             await _supabase.from('InventoryHistory').delete().eq('id', id);
-            location.reload();
-        }
-    }
-
-    // 4. Edit Price
-    async function editPrice(id, name, oldPrice) {
-        const newPrice = prompt(`New price for ${name}:`, oldPrice);
-        if (newPrice) {
-            await _supabase.from('InventoryHistory').update({ Price: parseFloat(newPrice) }).eq('id', id);
             location.reload();
         }
     }
