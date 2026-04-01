@@ -10,20 +10,20 @@
         .auth-input, input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .auth-btn, .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
         
+        /* THE POWER ROW LAYOUT */
         .row { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 150px; }
         label { display: block; font-size: 10px; font-weight: bold; margin-bottom: 4px; color: #999; text-transform: uppercase; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 30px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-        th { color: #aaa; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
         .thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
         
         .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
         .s-available { background: #e6fffa; color: #2c7a7b; }
         .s-pending { background: #fff9e6; color: #b7791f; border: 1px solid #fbd38d; }
         .s-shipped { background: #ebf8ff; color: #2b6cb0; }
-        .s-issue { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+        .s-issue { background: #fff5f5; color: #c53030; }
     </style>
 </head>
 <body>
@@ -38,19 +38,19 @@
 <div class="container" id="mainApp">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h1>Inventory & Fulfillment</h1>
-        <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="cursor:pointer; border:none; background:none; color:#999;">Log Out</button>
+        <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="cursor:pointer; border:none; background:none; color:#888;">Log Out</button>
     </div>
 
     <form id="inventoryForm" style="background:#f9f9f9; padding:25px; border-radius:12px; border: 1px solid #eee;">
         <div class="row">
-            <div style="flex: 2;"><label>Item Name *</label><input type="text" id="ItemName" required placeholder="e.g. Midnight Garden Ring"></div>
+            <div style="flex: 2;"><label>Item Name *</label><input type="text" id="ItemName" required></div>
             <div>
                 <label>Category</label>
                 <select id="ItemCategory">
                     <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Necklace Set</option><option>Earring Set</option><option>Stacks</option><option>Set (Mixed)</option>
                 </select>
             </div>
-            <div><label>Collection *</label><input list="cols" id="Collection" required placeholder="Select or Type..."><datalist id="cols"></datalist></div>
+            <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
         </div>
 
         <div class="row">
@@ -70,8 +70,8 @@
         </div>
 
         <div class="row">
-            <div><label>Purchase Price (Cost) *</label><input type="number" id="PurchasePrice" step="0.01" required></div>
-            <div><label>Retail Price (Sell) *</label><input type="number" id="Price" step="0.01" required></div>
+            <div><label>Cost Price ($) *</label><input type="number" id="CostPrice" step="0.01" required></div>
+            <div><label>Retail Price (Sell) ($) *</label><input type="number" id="Price" step="0.01" required></div>
             <div><label>Photo</label><input type="file" id="ItemImage" accept="image/*"></div>
         </div>
         
@@ -84,7 +84,7 @@
                 <th>Photo</th>
                 <th>Item Details</th>
                 <th>Status</th>
-                <th>Buyer / Bag / Tracking</th>
+                <th>Shipping Info</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -105,7 +105,7 @@
             if (session) {
                 document.getElementById('authBox').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'block';
-                setupUI();
+                document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
                 loadItems();
             } else {
                 document.getElementById('authBox').style.display = 'block';
@@ -113,11 +113,6 @@
             }
         });
     };
-
-    function setupUI() {
-        const list = document.getElementById('cols');
-        list.innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
-    }
 
     async function doLogin() {
         const e = document.getElementById('email').value;
@@ -128,20 +123,17 @@
 
     async function uploadItem() {
         const btn = document.getElementById('saveBtn');
-        const form = document.getElementById('inventoryForm');
-        if (!form.checkValidity()) return alert("Missing required info!");
+        if (!document.getElementById('inventoryForm').checkValidity()) return alert("Fill in required fields!");
 
-        btn.innerText = "UPLOADING...";
+        btn.innerText = "SAVING...";
         btn.disabled = true;
 
-        const file = document.getElementById('ItemImage').files[0];
         let url = "https://via.placeholder.com/150";
-
+        const file = document.getElementById('ItemImage').files[0];
         if (file) {
             const name = `img-${Date.now()}`;
             await _sb.storage.from('jewelry-photos').upload(name, file);
-            const { data } = _sb.storage.from('jewelry-photos').getPublicUrl(name);
-            url = data.publicUrl;
+            url = _sb.storage.from('jewelry-photos').getPublicUrl(name).data.publicUrl;
         }
 
         const { data: { user } } = await _sb.auth.getUser();
@@ -153,7 +145,7 @@
             Plating: document.getElementById('Plating').value,
             Rarity: document.getElementById('Rarity').value,
             Stone: document.getElementById('Stone').value,
-            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value),
+            CostPrice: parseFloat(document.getElementById('CostPrice').value),
             Price: parseFloat(document.getElementById('Price').value),
             image_url: url,
             Status: 'Available',
@@ -161,13 +153,12 @@
             creator_handle: 'destashe'
         }]);
 
-        if (error) { alert(error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
+        if (error) { alert("DATABASE ERROR: " + error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
         else { location.reload(); }
     }
 
     async function loadItems() {
         const { data: { user } } = await _sb.auth.getUser();
-        // Hide SYSTEM status and CLOSED items to keep view clean
         const { data } = await _sb.from('InventoryHistory')
             .select('*')
             .eq('user_id', user.id)
@@ -179,49 +170,39 @@
         tbody.innerHTML = data.map(item => `
             <tr class="row-${item.Status.toLowerCase()}">
                 <td><img src="${item.image_url}" class="thumb"></td>
-                <td>
-                    <strong>${item.ItemName}</strong><br>
-                    <small>${item.Collection} | ${item.Stone || 'No Stone'}</small>
-                </td>
+                <td><strong>${item.ItemName}</strong><br><small>${item.Collection} | ${item.Stone || ''}</small></td>
                 <td><span class="status-badge s-${item.Status.toLowerCase()}">${item.Status}</span></td>
+                <td>${item.ClaimedBy ? `Buyer: ${item.ClaimedBy} | Bag: ${item.BagNumber || '?'}` : 'Available'}</td>
                 <td>
-                    ${item.Status === 'Available' ? 'Ready for Claim' : 
-                      item.Status === 'Pending' ? `Buyer: ${item.ClaimedBy || 'Unknown'} (Bag ${item.BagNumber || '?'})` : 
-                      `Carrier: ${item.Carrier || '-'} | Track: ${item.TrackingNumber || '-'}`}
-                </td>
-                <td>
-                    <button onclick="manageItem('${item.id}', '${item.Status}')" style="cursor:pointer; border:1px solid #ddd; padding:4px 8px; border-radius:4px; font-size:11px;">UPDATE STATUS</button>
-                    <button onclick="deleteMistake('${item.id}')" style="cursor:pointer; border:none; background:none; color:red; font-size:10px; margin-left:5px;">Delete</button>
+                    <button onclick="manageStatus('${item.id}', '${item.Status}')" style="cursor:pointer; padding:5px 10px; border-radius:4px; border:1px solid #ddd; font-size:11px;">UPDATE</button>
+                    <button onclick="deleteMistake('${item.id}')" style="color:red; border:none; background:none; cursor:pointer; font-size:10px; margin-left:10px;">Delete</button>
                 </td>
             </tr>
         `).join('');
     }
 
-    async function manageItem(id, currentStatus) {
-        if (currentStatus === 'Available') {
-            const buyer = prompt("Buyer Name/Social Handle:");
+    async function manageStatus(id, current) {
+        if (current === 'Available') {
+            const buyer = prompt("Buyer Social Handle:");
             const bag = prompt("Bag Number:");
             if (buyer && bag) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: buyer, BagNumber: bag }).eq('id', id);
-        } else if (currentStatus === 'Pending') {
-            const choice = prompt("Type 'SHIP' to add tracking, or 'RELEASE' to restock item:").toUpperCase();
+        } else if (current === 'Pending') {
+            const choice = prompt("Type 'SHIP' to add tracking or 'RELEASE' to restock:").toUpperCase();
             if (choice === 'SHIP') {
                 const carrier = prompt("Carrier (USPS/UPS):", "USPS");
                 const track = prompt("Tracking Number:");
-                if (carrier && track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', Carrier: carrier, TrackingNumber: track }).eq('id', id);
+                if (track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', Carrier: carrier, TrackingNumber: track }).eq('id', id);
             } else if (choice === 'RELEASE') {
                 await _sb.from('InventoryHistory').update({ Status: 'Available', ClaimedBy: null, BagNumber: null }).eq('id', id);
             }
-        } else if (currentStatus === 'Shipped') {
-            if (confirm("Move to Closed Out? (Transaction finished)")) await _sb.from('InventoryHistory').update({ Status: 'Closed' }).eq('id', id);
+        } else {
+            if (confirm("Close transaction?")) await _sb.from('InventoryHistory').update({ Status: 'Closed' }).eq('id', id);
         }
         location.reload();
     }
 
     async function deleteMistake(id) {
-        if (confirm("Delete this item permanently? Only do this if it was a mistake entry.")) {
-            await _sb.from('InventoryHistory').delete().eq('id', id);
-            location.reload();
-        }
+        if (confirm("Delete permanently?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
     }
 </script>
 </body>
