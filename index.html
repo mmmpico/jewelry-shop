@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Heather's Jewelry Gallery</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body { font-family: 'Georgia', serif; background: #fffafb; color: #333; margin: 0; padding: 0; }
+        header { background: white; padding: 40px 20px; text-align: center; border-bottom: 1px solid #eee; }
+        h1 { margin: 0; font-weight: 300; letter-spacing: 2px; text-transform: uppercase; }
+        
+        .gallery-container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+        
+        /* This makes the "Cards" sit in a pretty grid */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
+        
+        .card { background: white; border-radius: 0px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: 0.3s; position: relative; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        .card img { width: 100%; height: 320px; object-fit: cover; }
+        
+        .card-info { padding: 20px; text-align: center; }
+        .item-name { font-size: 18px; margin-bottom: 8px; font-weight: bold; }
+        .item-details { color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+        .item-price { font-size: 20px; margin-top: 15px; color: #d4af37; font-weight: bold; } /* Gold color for price */
+        
+        /* A little badge for Sold items */
+        .sold-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); color: white; padding: 5px 12px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>The Jewelry Collection</h1>
+    <p>Hand-picked beauty, just for you.</p>
+</header>
+
+<div class="gallery-container">
+    <div id="jewelryGrid" class="grid">
+        </div>
+</div>
+
+<script>
+    // 1. Connection (Paste your exact keys below!)
+    const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 2. The "Fetch" function to grab your items
+    async function displayGallery() {
+        const grid = document.getElementById('jewelryGrid');
+        console.log("I am starting to look for jewelry...");
+        
+        const { data, error } = await _supabase
+            .from('InventoryHistory')
+            .select('*')
+            .select('*');
+
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        grid.innerHTML = ""; // Clear the "loading" state
+
+        data.forEach(item => {
+            // Only show the item if it's NOT marked as Paused
+            if (item.Status !== 'Paused') {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                // Show a "Sold" badge if the status is Sold
+                const statusBadge = item.Status === 'Sold' ? `<div class="sold-badge">SOLD</div>` : '';
+
+                card.innerHTML = `
+                    ${statusBadge}
+                    <img src="${item.image_url || 'https://via.placeholder.com/400x500?text=No+Image'}">
+                    <div class="card-info">
+                        <div class="item-details">${item.ItemCategory} | ${item.Plating}</div>
+                        <div class="item-name">${item.ItemName}</div>
+                        <div class="item-price">$${item.Price}</div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        });
+    }
+
+    displayGallery();
+</script>
+
+</body>
+</html>
