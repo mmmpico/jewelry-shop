@@ -182,5 +182,41 @@
             <tr>
                 <td><img src="${item.image_url}" class="thumb"></td>
                 <td><strong>${item.ItemName}</strong><br><small>${item.Collection} | ${item.Stone || ''}</small></td>
-                <td><span class="badge s-${item.Status.toLowerCase()}">${item.
-                                                                         
+                <td><span class="badge s-${item.Status.toLowerCase()}">${item.Status}</span></td>
+                <td><strong>${item.BagNumber || '--'}</strong></td>
+                <td>${item.ClaimedBy || '--'}</td>
+                <td><small>${item.Carrier || ''} ${item.TrackingNumber || ''}</small></td>
+                <td>
+                    <button onclick="manageStatus('${item.id}', '${item.Status}')" class="btn-update">UPDATE</button>
+                    <button onclick="deleteItem('${item.id}')" style="color:red; border:none; background:none; cursor:pointer; font-size:10px; margin-left:10px;">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    async function manageStatus(id, current) {
+        if (current === 'Available') {
+            const buyer = prompt("Buyer Social Handle:");
+            const bag = prompt("Bag Number:");
+            if (buyer && bag) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: buyer, BagNumber: bag }).eq('id', id);
+        } else if (current === 'Pending') {
+            const choice = prompt("Type 'SHIP' to add tracking or 'RELEASE' to restock:").toUpperCase();
+            if (choice === 'SHIP') {
+                const carrier = prompt("Carrier (USPS/UPS):", "USPS");
+                const track = prompt("Tracking Number:");
+                if (track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', Carrier: carrier, TrackingNumber: track }).eq('id', id);
+            } else if (choice === 'RELEASE') {
+                await _sb.from('InventoryHistory').update({ Status: 'Available', ClaimedBy: null, BagNumber: null }).eq('id', id);
+            }
+        } else {
+            if (confirm("Close transaction and move to archive?")) await _sb.from('InventoryHistory').update({ Status: 'Closed' }).eq('id', id);
+        }
+        location.reload();
+    }
+
+    async function deleteItem(id) {
+        if (confirm("Delete permanently?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
+    }
+</script>
+</body>
+</html>
