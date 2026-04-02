@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Command Center - Final Audited Version</title>
+    <title>DeStashe Command Center - Master Fulfillment Hub</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background: #f4f7f9; padding: 20px; color: #333; margin: 0; }
@@ -18,9 +18,9 @@
         .btn-main { background: #1e293b; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; }
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .item-strip { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
-        .img-mini { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: #f1f5f9; }
+        .img-mini { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: #f1f5f9; border: 1px solid #eee; }
         .bag-badge { background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-weight: 800; }
-        .btn-action { padding: 6px 12px; border-radius: 4px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 10px; font-weight: 700; }
+        .btn-action { padding: 6px 12px; border-radius: 4px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 10px; font-weight: 700; background: white; }
         .btn-pay { background: #22c55e; color: white; border: none; }
         .btn-ship { background: #3b82f6; color: white; border: none; }
     </style>
@@ -60,10 +60,10 @@
                     <div><label>Rarity</label><select id="Rarity">
                         <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Ultra Rare Unicorn</option><option>Bella</option><option>Lillian</option><option>Diamond</option>
                     </select></div>
-                    <div><label>PurchasePrice</label><input type="number" id="PurchasePrice" step="0.01"></div>
-                    <div><label>ListedPrice *</label><input type="number" id="ListedPrice" step="0.01" required></div>
+                    <div><label>PurchasePrice (Cost)</label><input type="number" id="PurchasePrice" step="0.01"></div>
+                    <div><label>ListedPrice (Retail) *</label><input type="number" id="ListedPrice" step="0.01" required></div>
                     <div><label>Set Count</label><input type="number" id="SetCount" value="1"></div>
-                    <div><label>Photo</label><input type="file" id="ItemImage"></div>
+                    <div><label>Photo</label><input type="file" id="ItemImage" accept="image/*"></div>
                 </div>
                 <button type="button" class="btn-main" id="saveBtn" onclick="uploadItem()">+ Add to Vault</button>
             </form>
@@ -71,32 +71,22 @@
     </div>
 
     <div class="dashboard-grid">
-        <div class="card">
-            <div class="station-header"><h3>2. Claimed (Waiting Payment)</h3></div>
-            <div id="list-pending"></div>
-        </div>
-        <div class="card">
-            <div class="station-header"><h3>3. Paid (Ready to Ship)</h3></div>
-            <div id="list-paid"></div>
-        </div>
-        <div class="card" style="grid-column: span 2;">
-            <div class="station-header"><h3>4. All Available Inventory</h3></div>
-            <div id="list-available"></div>
-        </div>
+        <div class="card"><div class="station-header"><h3>2. Claimed (Waiting Payment)</h3></div><div id="list-pending"></div></div>
+        <div class="card"><div class="station-header"><h3>3. Paid (Ready to Ship)</h3></div><div id="list-paid"></div></div>
+        <div class="card" style="grid-column: span 2;"><div class="station-header"><h3>4. All Available Inventory</h3></div><div id="list-available"></div></div>
     </div>
 </div>
 
 <script>
     const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-    const COLLECTIONS = ["Originals 2023", "Originals 2024", "Originals 2025", "Originals 2026", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Luxe Liners", "Sterling Club", "Elevated Elegance", "Jan Birthday", "Feb Birthday", "Mar Birthday", "Apr Birthday", "May Birthday", "Jun Birthday", "Jul Birthday", "Aug Birthday", "Sep Birthday", "Oct Birthday", "Nov Birthday", "Dec Birthday"];
+    const COLLECTIONS = ["Originals 2023", "Originals 2024", "Originals 2025", "Originals 2026", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club", "Elevated Elegance", "Birthday Months"];
+    const NO_IMG = "https://via.placeholder.com/150?text=No+Photo";
     
     var _sb;
 
     window.onload = function() {
-        // Initializing with session persistence
         _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true } });
-        
         _sb.auth.onAuthStateChange((event, session) => {
             if (session) {
                 document.getElementById('authBox').style.display = 'none';
@@ -111,39 +101,50 @@
     };
 
     async function doLogin() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('pass').value;
-        const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
-        if (error) alert("Login Error: " + error.message);
+        const { error } = await _sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('pass').value });
+        if (error) alert(error.message);
     }
 
-    async function doLogout() {
-        await _sb.auth.signOut();
-        location.reload();
-    }
+    async function doLogout() { await _sb.auth.signOut(); location.reload(); }
 
     async function uploadItem() {
         const btn = document.getElementById('saveBtn');
         if (!document.getElementById('inventoryForm').checkValidity()) return alert("Check required fields!");
-        
         btn.innerText = "Saving..."; btn.disabled = true;
-        let url = "";
+
+        let finalUrl = "";
         const file = document.getElementById('ItemImage').files[0];
+        
         if (file) {
-            const name = `img-${Date.now()}`;
-            await _sb.storage.from('jewelry-photos').upload(name, file);
-            url = _sb.storage.from('jewelry-photos').getPublicUrl(name).data.publicUrl;
+            const fileName = `img-${Date.now()}-${file.name.replace(/[^a-z0-9.]/gi, '_')}`;
+            const { data, error: uploadErr } = await _sb.storage.from('jewelry-photos').upload(fileName, file);
+            if (uploadErr) { alert("Upload error: " + uploadErr.message); }
+            else {
+                const { data: urlData } = _sb.storage.from('jewelry-photos').getPublicUrl(fileName);
+                finalUrl = urlData.publicUrl;
+            }
         }
+
         const { data: { user } } = await _sb.auth.getUser();
-        await _sb.from('InventoryHistory').insert([{
-            ItemName: document.getElementById('ItemName').value, SKU: document.getElementById('SKU').value,
-            ItemCategory: document.getElementById('ItemCategory').value, Collection: document.getElementById('Collection').value,
-            Plating: document.getElementById('Plating').value, Rarity: document.getElementById('Rarity').value,
-            Stone: document.getElementById('Stone').value, PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
-            ListedPrice: parseFloat(document.getElementById('ListedPrice').value), SetCount: parseInt(document.getElementById('SetCount').value),
-            image_url: url, Status: 'Available', user_id: user.id, creator_handle: 'destashe'
+        const { error: dbErr } = await _sb.from('InventoryHistory').insert([{
+            ItemName: document.getElementById('ItemName').value,
+            SKU: document.getElementById('SKU').value,
+            ItemCategory: document.getElementById('ItemCategory').value,
+            Collection: document.getElementById('Collection').value,
+            Plating: document.getElementById('Plating').value,
+            Rarity: document.getElementById('Rarity').value,
+            Stone: document.getElementById('Stone').value,
+            PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
+            ListedPrice: parseFloat(document.getElementById('ListedPrice').value) || 0,
+            SetCount: parseInt(document.getElementById('SetCount').value) || 1,
+            image_url: finalUrl,
+            Status: 'Available',
+            user_id: user.id,
+            creator_handle: 'destashe'
         }]);
-        location.reload();
+
+        if (dbErr) { alert("DB Error: " + dbErr.message); btn.disabled = false; btn.innerText = "+ Add to Vault"; }
+        else { location.reload(); }
     }
 
     async function loadEverything() {
@@ -157,13 +158,12 @@
 
         const now = new Date();
         data.forEach(item => {
-            const createdDate = new Date(item.CreatedAt);
-            const diffMinutes = Math.floor((now - createdDate) / 60000);
-            const canDelete = (item.Status === 'Available' && diffMinutes < 60);
+            const canDelete = (item.Status === 'Available' && Math.floor((now - new Date(item.CreatedAt)) / 60000) < 60);
+            const img = item.image_url && item.image_url !== "" ? item.image_url : NO_IMG;
 
             const html = `
                 <div class="item-strip">
-                    <img src="${item.image_url || 'https://via.placeholder.com/150?text=No+Photo'}" class="img-mini">
+                    <img src="${img}" class="img-mini" onerror="this.src='${NO_IMG}'">
                     <div style="flex:1">
                         <span style="font-weight:700; display:block;">${item.ItemName}</span>
                         <span style="font-size:10px; color:#64748b;">${item.SKU || 'No SKU'} • MSRP: $${item.ListedPrice}</span>
@@ -192,8 +192,8 @@
     }
 
     async function markPaid(id) {
-        const salePrice = prompt("Enter FINAL Sale Price (What they actually paid):");
-        if (!salePrice || isNaN(salePrice)) return alert("Required: Enter a valid Sale Price.");
+        const salePrice = prompt("Enter FINAL Sale Price:");
+        if (!salePrice || isNaN(salePrice)) return alert("Required: Valid Sale Price.");
         await _sb.from('InventoryHistory').update({ PaymentReceived: true, SalePrice: parseFloat(salePrice) }).eq('id', id);
         location.reload();
     }
