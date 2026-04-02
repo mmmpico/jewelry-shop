@@ -139,4 +139,79 @@
             ItemName: document.getElementById('ItemName').value, SKU: document.getElementById('SKU').value,
             ItemCategory: document.getElementById('ItemCategory').value, Collection: document.getElementById('Collection').value,
             Plating: document.getElementById('Plating').value, Rarity: document.getElementById('Rarity').value,
-            Stone: document
+            Stone: document.getElementById('Stone').value, PurchasePrice: parseFloat(document.getElementById('PurchasePrice').value) || 0,
+            ListedPrice: parseFloat(document.getElementById('ListedPrice').value), SetCount: parseInt(document.getElementById('SetCount').value),
+            image_url: url, Status: 'Available', user_id: user.id, creator_handle: 'destashe'
+        }]);
+        location.reload();
+    }
+
+    async function loadEverything() {
+        const { data: { user } } = await _sb.auth.getUser();
+        const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('ItemName', 'SYSTEM_STORE_STATUS').neq('Status','Closed').order('CreatedAt', { ascending: false });
+        
+        const divPending = document.getElementById('list-pending');
+        const divPaid = document.getElementById('list-paid');
+        const divAvail = document.getElementById('list-available');
+        divPending.innerHTML = ""; divPaid.innerHTML = ""; divAvail.innerHTML = "";
+
+        const now = new Date();
+        data.forEach(item => {
+            const createdDate = new Date(item.CreatedAt);
+            const diffMinutes = Math.floor((now - createdDate) / 60000);
+            const canDelete = (item.Status === 'Available' && diffMinutes < 60);
+
+            const html = `
+                <div class="item-strip">
+                    <img src="${item.image_url || 'https://via.placeholder.com/150?text=No+Photo'}" class="img-mini">
+                    <div style="flex:1">
+                        <span style="font-weight:700; display:block;">${item.ItemName}</span>
+                        <span style="font-size:10px; color:#64748b;">${item.SKU || 'No SKU'} • MSRP: $${item.ListedPrice}</span>
+                    </div>
+                    ${item.Status === 'Pending' ? `<div class="bag-badge">Bag ${item.BagNumber}</div><div style="font-size:11px; color:#64748b;">@${item.ClaimedBy}</div>` : ''}
+                    <div style="display:flex; gap:5px;">
+                        ${item.Status === 'Available' ? `<button class="btn-action" onclick="claim('${item.id}')">Claim</button>` : ''}
+                        ${item.Status === 'Pending' && !item.PaymentReceived ? `<button class="btn-action btn-pay" onclick="markPaid('${item.id}')">Paid?</button>` : ''}
+                        ${item.Status === 'Pending' && item.PaymentReceived ? `<button class="btn-action btn-ship" onclick="ship('${item.id}')">Ship</button>` : ''}
+                        ${item.Status === 'Pending' ? `<button class="btn-action" onclick="release('${item.id}')">Release</button>` : ''}
+                        ${canDelete ? `<button onclick="deleteItem('${item.id}')" style="color:red; border:none; background:none; cursor:pointer; font-size:18px;">×</button>` : ''}
+                    </div>
+                </div>`;
+
+            if (item.Status === 'Available') divAvail.innerHTML += html;
+            else if (item.Status === 'Pending' && !item.PaymentReceived) divPending.innerHTML += html;
+            else if (item.Status === 'Pending' && item.PaymentReceived) divPaid.innerHTML += html;
+        });
+    }
+
+    async function claim(id) {
+        const handle = prompt("Buyer Social Handle:");
+        const bag = prompt("Bag Number:");
+        if (handle && bag) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: handle, BagNumber: bag, PaymentReceived: false }).eq('id', id);
+        location.reload();
+    }
+
+    async function markPaid(id) {
+        const salePrice = prompt("Enter FINAL Sale Price (What they actually paid):");
+        if (!salePrice || isNaN(salePrice)) return alert("Required: Enter a valid Sale Price.");
+        await _sb.from('InventoryHistory').update({ PaymentReceived: true, SalePrice: parseFloat(salePrice) }).eq('id', id);
+        location.reload();
+    }
+
+    async function ship(id) {
+        const track = prompt("Tracking Number:");
+        if (track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', TrackingNumber: track }).eq('id', id);
+        location.reload();
+    }
+
+    async function release(id) {
+        if(confirm("Release back to vault?")) {
+            await _sb.from('InventoryHistory').update({ Status: 'Available', ClaimedBy: null, BagNumber: null, PaymentReceived: false, SalePrice: null }).eq('id', id);
+            location.reload();
+        }
+    }
+
+    async function deleteItem(id) { if (confirm("Delete permanently?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); } }
+</script>
+</body>
+</html>
