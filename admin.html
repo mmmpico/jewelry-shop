@@ -1,25 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Admin - Master Command</title>
+    <title>DeStashe Admin - Fulfillment Command</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #fdfbfb; padding: 20px; color: #333; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: none; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); display: none; }
         #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .auth-input, input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        .auth-btn, .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
         
         .row { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 150px; }
         label { display: block; font-size: 10px; font-weight: bold; margin-bottom: 4px; color: #999; text-transform: uppercase; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        /* TABLE STYLING */
+        table { width: 100%; border-collapse: collapse; margin-top: 30px; background: white; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 12px; vertical-align: middle; }
+        th { color: #aaa; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; background: #fafafa; }
+        .thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }
+        
+        /* STATUS BADGES */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; display: inline-block; }
         .s-available { background: #e6fffa; color: #2c7a7b; }
         .s-pending { background: #fff9e6; color: #b7791f; border: 1px solid #fbd38d; }
+        .s-shipped { background: #ebf8ff; color: #2b6cb0; }
+        
+        .btn-action { cursor: pointer; border: 1px solid #ddd; background: white; padding: 5px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .btn-action:hover { background: #f4f4f4; }
+        tr:hover { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
@@ -28,156 +37,16 @@
     <h2 style="color:#d4af37">Creator Login</h2>
     <input type="email" id="email" class="auth-input" placeholder="Email">
     <input type="password" id="pass" class="auth-input" placeholder="Password">
-    <button class="auth-btn" onclick="doLogin()">Log In</button>
+    <button class="save-btn" style="width:100%" onclick="doLogin()">Log In</button>
 </div>
 
 <div class="container" id="mainApp">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h1>Inventory & Fulfillment</h1>
-        <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="cursor:pointer; border:none; background:none; color:#888;">Log Out</button>
+        <h1>Inventory & Shipping Hub</h1>
+        <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="cursor:pointer; border:none; background:none; color:#999;">Log Out</button>
     </div>
 
-    <form id="inventoryForm" style="background:#f9f9f9; padding:25px; border-radius:12px; border: 1px solid #eee;">
+    <form id="inventoryForm" style="background:#fdfdfd; padding:20px; border-radius:10px; border: 1px solid #eee; margin-bottom:40px;">
         <div class="row">
             <div style="flex: 2;"><label>Item Name *</label><input type="text" id="ItemName" required></div>
-            <div>
-                <label>Category</label>
-                <select id="ItemCategory">
-                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Set</option>
-                </select>
-            </div>
-            <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
-        </div>
-
-        <div class="row">
-            <div>
-                <label>Plating</label>
-                <select id="Plating">
-                    <option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option><option>Hematite</option><option>Mixed</option>
-                </select>
-            </div>
-            <div style="flex: 1.5;"><label>Stone</label><input type="text" id="Stone" placeholder="e.g. Fire Opal"></div>
-            <div>
-                <label>Rarity</label>
-                <select id="Rarity">
-                    <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Ultra Rare Unicorn</option><option>Diamonds</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="row">
-            <div><label>Cost Price ($) *</label><input type="number" id="CostPrice" step="0.01" required></div>
-            <div><label>Retail Price ($) *</label><input type="number" id="Price" step="0.01" required></div>
-            <div><label>Pieces in Set</label><input type="number" id="SetCount" value="1" min="1"></div>
-            <div><label>Photo</label><input type="file" id="ItemImage" accept="image/*"></div>
-        </div>
-        
-        <button type="button" id="saveBtn" class="save-btn" onclick="uploadItem()">Add to Collection</button>
-    </form>
-
-    <table id="inventoryTable">
-        <thead>
-            <tr>
-                <th>Photo</th>
-                <th>Item Details</th>
-                <th>Set Count</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-<script>
-    const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-    const COLLECTIONS = ["Originals 2023", "Originals 2024", "Originals 2025", "Originals 2026", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday"];
-    
-    var _sb;
-
-    window.onload = function() {
-        _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        _sb.auth.onAuthStateChange((event, session) => {
-            if (session) {
-                document.getElementById('authBox').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-                document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
-                loadItems();
-            } else {
-                document.getElementById('authBox').style.display = 'block';
-                document.getElementById('mainApp').style.display = 'none';
-            }
-        });
-    };
-
-    async function doLogin() {
-        const e = document.getElementById('email').value;
-        const p = document.getElementById('pass').value;
-        const { error } = await _sb.auth.signInWithPassword({ email: e, password: p });
-        if (error) alert(error.message);
-    }
-
-    async function uploadItem() {
-        const btn = document.getElementById('saveBtn');
-        if (!document.getElementById('inventoryForm').checkValidity()) return alert("Fill in required fields!");
-
-        btn.innerText = "SAVING...";
-        btn.disabled = true;
-
-        let url = "https://via.placeholder.com/150";
-        const file = document.getElementById('ItemImage').files[0];
-        if (file) {
-            const name = `img-${Date.now()}`;
-            await _sb.storage.from('jewelry-photos').upload(name, file);
-            url = _sb.storage.from('jewelry-photos').getPublicUrl(name).data.publicUrl;
-        }
-
-        const { data: { user } } = await _sb.auth.getUser();
-
-        const { error } = await _sb.from('InventoryHistory').insert([{
-            ItemName: document.getElementById('ItemName').value,
-            ItemCategory: document.getElementById('ItemCategory').value,
-            Collection: document.getElementById('Collection').value,
-            Plating: document.getElementById('Plating').value,
-            Rarity: document.getElementById('Rarity').value,
-            Stone: document.getElementById('Stone').value,
-            CostPrice: parseFloat(document.getElementById('CostPrice').value),
-            Price: parseFloat(document.getElementById('Price').value),
-            SetCount: parseInt(document.getElementById('SetCount').value),
-            image_url: url,
-            Status: 'Available',
-            user_id: user.id,
-            creator_handle: 'destashe'
-        }]);
-
-        if (error) { alert("DATABASE ERROR: " + error.message); btn.disabled = false; btn.innerText = "Add to Collection"; }
-        else { location.reload(); }
-    }
-
-    async function loadItems() {
-        const { data: { user } } = await _sb.auth.getUser();
-        const { data } = await _sb.from('InventoryHistory')
-            .select('*')
-            .eq('user_id', user.id)
-            .neq('ItemName', 'SYSTEM_STORE_STATUS')
-            .order('CreatedAt', { ascending: false });
-
-        const tbody = document.querySelector('#inventoryTable tbody');
-        tbody.innerHTML = data.map(item => `
-            <tr>
-                <td><img src="${item.image_url}" class="thumb"></td>
-                <td><strong>${item.ItemName}</strong><br><small>${item.Collection}</small></td>
-                <td>${item.SetCount || 1} pcs</td>
-                <td><span class="status-badge s-${item.Status.toLowerCase()}">${item.Status}</span></td>
-                <td><button onclick="deleteItem('${item.id}')" style="color:red; cursor:pointer; border:none; background:none;">Delete</button></td>
-            </tr>
-        `).join('');
-    }
-
-    async function deleteItem(id) {
-        if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
-    }
-</script>
-</body>
-</html>
+            <div><label>Category</label><select id="ItemCategory"><option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option
