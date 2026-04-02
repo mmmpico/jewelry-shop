@@ -20,7 +20,6 @@
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .item-strip { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
         .img-mini { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; background: #f1f5f9; border: 1px solid #eee; }
-        .bag-badge { background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 4px; font-weight: 800; }
         .btn-action { padding: 6px 12px; border-radius: 4px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 10px; font-weight: 700; background: white; }
     </style>
 </head>
@@ -85,6 +84,7 @@
     const COLLECTIONS = ["Originals 2023", "Originals 2024", "Originals 2025", "Originals 2026", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club", "Elevated Elegance", "Jan Birthday", "Feb Birthday", "Mar Birthday", "Apr Birthday", "May Birthday", "Jun Birthday", "Jul Birthday", "Aug Birthday", "Sep Birthday", "Oct Birthday", "Nov Birthday", "Dec Birthday"];
     
     let _sb;
+    const NO_IMG = "https://via.placeholder.com/150?text=No+Photo";
 
     window.onload = function() {
         _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -120,32 +120,73 @@
 
     async function uploadItem() {
         const btn = document.getElementById('saveBtn');
-        if (!document.getElementById('inventoryForm').checkValidity()) return alert("Check required fields!");
-        btn.innerText = "Saving..."; btn.disabled = true;
+        const form = document.getElementById('inventoryForm');
+        
+        if (!form.checkValidity()) return alert("Check required fields!");
+        
+        btn.innerText = "Processing Image..."; btn.disabled = true;
 
-        let url = "";
+        let finalUrl = "";
         const file = document.getElementById('ItemImage').files[0];
-        if (file) {
-            const name = `img-${Date.now()}`;
-            await _sb.storage.from('jewelry-photos').upload(name, file);
-            url = _sb.storage.from('jewelry-photos').getPublicUrl(name).data.publicUrl;
-        }
+        
+        try {
+            if (file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `img-${Date.now()}.${fileExt}`;
+                
+                // 1. UPLOAD
+                const { data: uploadData, error: uploadErr } = await _sb.storage
+                    .from('jewelry-photos')
+                    .upload(fileName, file);
+                
+                if (uploadErr) throw uploadErr;
 
-        const { data: { user } } = await _sb.auth.getUser();
-        await _sb.from('InventoryHistory').insert([{
-            ItemName: document.getElementById('ItemName').value, SKU: document.getElementById('SKU').value,
-            ItemCategory: document.getElementById('ItemCategory').value, Collection: document.getElementById('Collection').value,
-            Plating: document.getElementById('Plating').value, Rarity: document.getElementById('Rarity').value,
-            Stone: document.getElementById('Stone').value, CostPrice: parseFloat(document.getElementById('CostPrice').value) || 0,
-            ListedPrice: parseFloat(document.getElementById('ListedPrice').value) || 0, SetCount: parseInt(document.getElementById('SetCount').value) || 1,
-            image_url: url, Status: 'Available', user_id: user.id, creator_handle: 'destashe'
-        }]);
-        location.reload();
+                // 2. GET URL
+                const { data: urlData } = _sb.storage
+                    .from('jewelry-photos')
+                    .getPublicUrl(fileName);
+                
+                finalUrl = urlData.publicUrl;
+            }
+
+            // 3. SAVE TO DATABASE
+            btn.innerText = "Saving Data...";
+            const { data: { user } } = await _sb.auth.getUser();
+            const { error: dbErr } = await _sb.from('InventoryHistory').insert([{
+                ItemName: document.getElementById('ItemName').value,
+                SKU: document.getElementById('SKU').value,
+                ItemCategory: document.getElementById('ItemCategory').value,
+                Collection: document.getElementById('Collection').value,
+                Plating: document.getElementById('Plating').value,
+                Rarity: document.getElementById('Rarity').value,
+                Stone: document.getElementById('Stone').value,
+                CostPrice: parseFloat(document.getElementById('CostPrice').value) || 0,
+                ListedPrice: parseFloat(document.getElementById('ListedPrice').value) || 0,
+                SetCount: parseInt(document.getElementById('SetCount').value) || 1,
+                image_url: finalUrl,
+                Status: 'Available',
+                user_id: user.id,
+                creator_handle: 'destashe'
+            }]);
+
+            if (dbErr) throw dbErr;
+            location.reload();
+
+        } catch (err) {
+            alert("Upload Failed: " + err.message);
+            btn.disabled = false;
+            btn.innerText = "+ Add to Vault";
+        }
     }
 
     async function loadEverything() {
         const { data: { user } } = await _sb.auth.getUser();
-        const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('ItemName', 'SYSTEM_STORE_STATUS').neq('Status','Closed').order('CreatedAt', { ascending: false });
+        const { data } = await _sb.from('InventoryHistory')
+            .select('*')
+            .eq('user_id', user.id)
+            .neq('ItemName', 'SYSTEM_STORE_STATUS')
+            .neq('Status','Closed')
+            .order('CreatedAt', { ascending: false });
         
         const divP = document.getElementById('list-pending');
         const divS = document.getElementById('list-paid');
@@ -156,8 +197,10 @@
         data?.forEach(item => {
             const diff = Math.floor((now - new Date(item.CreatedAt)) / 60000);
             const canDel = (item.Status === 'Available' && diff < 60);
+            const img = item.image_url || NO_IMG;
+            
             const html = `<div class="item-strip">
-                <img src="${item.image_url || 'https://via.placeholder.com/50'}" class="img-mini">
+                <img src="${img}" class="img-mini" onerror="this.src='${NO_IMG}'">
                 <div style="flex:1"><strong>${item.ItemName}</strong><br><small>${item.SKU || 'No SKU'} | $${item.ListedPrice}</small></div>
                 <div style="display:flex; gap:5px; align-items:center;">
                     ${item.Status === 'Available' ? `<button class="btn-action" onclick="claim('${item.id}')">Claim</button>` : ''}
