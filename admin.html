@@ -2,125 +2,53 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>DeStashe Hub - Version 33.0 Stable</title>
+    <title>DeStashe Hub - V34 Stable</title>
     <link rel="icon" href="data:,">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <script>
-        const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-        const COLLECTIONS = ["Originals 2023", "Originals 2024", "Originals 2025", "Originals 2026", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club", "Elevated Elegance", "Jan Birthday", "Feb Birthday", "Mar Birthday", "Apr Birthday", "May Birthday", "Jun Birthday", "Jul Birthday", "Aug Birthday", "Sep Birthday", "Oct Birthday", "Nov Birthday", "Dec Birthday"];
-        const OFFLINE_IMG = "data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2250%22%20height%3D%2250%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%2250%22%20height%3D%2250%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-family%3D%22Arial%22%20font-size%3D%228%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%20fill%3D%22%23aaa%22%3ENo%20Photo%3C%2Ftext%3E%3C%2Fsvg%3E";
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f4f7f9; padding: 20px; color: #333; margin: 0; }
+        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid #eee; }
+        .auth-input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 15px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; text-transform: uppercase; }
+        .container { max-width: 1400px; margin: auto; display: none; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 24px; border: 1px solid #eef2f6; overflow: hidden; }
+        .station-header { background: #fafbfc; padding: 15px 20px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; }
+        .station-header h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 800; }
+        .intake-body { padding: 25px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        label { font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 5px; text-transform: uppercase; }
+        input, select { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box; background: #fcfdfe; }
+        .btn-main { background: #1e293b; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; }
+        .item-strip { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+        .img-mini { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; background: #eee; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
 
-        let _sb;
+    <div id="authBox">
+        <h2 style="color:#d4af37; margin-bottom:20px;">DeStashe Admin</h2>
+        <input type="email" id="email" class="auth-input" placeholder="Email Address">
+        <input type="password" id="pass" class="auth-input" placeholder="Password">
+        <button class="btn-login" onclick="doSignIn()">Sign In</button>
+    </div>
 
-        // FORCE FUNCTIONS TO GLOBAL SCOPE IMMEDIATELY
-        window.doSignIn = async function() {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('pass').value;
-            const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
-            if (error) alert("Login Failed: " + error.message); else location.reload();
-        };
+    <div class="container" id="mainApp">
+        <header style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
+            <h1>Command Center</h1>
+            <button onclick="doSignOut()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-weight:bold;">Log Out</button>
+        </header>
 
-        window.doSignOut = async function() { 
-            await _sb.auth.signOut(); 
-            location.reload(); 
-        };
-
-        window.uploadItem = async function() {
-            const btn = document.getElementById('saveBtn');
-            if (!document.getElementById('inventoryForm').checkValidity()) return alert("Missing required fields!");
-            btn.innerText = "Processing..."; btn.disabled = true;
-
-            let finalUrl = "";
-            const file = document.getElementById('ItemImage').files[0];
-            if (file) {
-                const fileName = `img-${Date.now()}`;
-                await _sb.storage.from('jewelry-photos').upload(fileName, file);
-                finalUrl = _sb.storage.from('jewelry-photos').getPublicUrl(fileName).data.publicUrl;
-            }
-
-            const { data: { user } } = await _sb.auth.getUser();
-            const { error } = await _sb.from('InventoryHistory').insert([{
-                ItemName: document.getElementById('ItemName').value,
-                BrandSku: document.getElementById('BrandSku').value,
-                ItemCategory: document.getElementById('ItemCategory').value,
-                Collection: document.getElementById('Collection').value,
-                Plating: document.getElementById('Plating').value,
-                Rarity: document.getElementById('Rarity').value,
-                Stone: document.getElementById('Stone').value,
-                CostPrice: parseFloat(document.getElementById('CostPrice').value) || 0,
-                ListedPrice: parseFloat(document.getElementById('ListedPrice').value) || 0,
-                SetCount: parseInt(document.getElementById('SetCount').value) || 1,
-                image_url: finalUrl,
-                Status: 'Available',
-                user_id: user.id,
-                creator_handle: 'destashe'
-            }]);
-
-            if (error) { alert("DB Error: " + error.message); btn.disabled = false; btn.innerText = "+ Add to Vault"; }
-            else { location.reload(); }
-        };
-
-        window.loadEverything = async function() {
-            const { data: { user } } = await _sb.auth.getUser();
-            const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('ItemName', 'SYSTEM_STORE_STATUS').neq('Status','Closed').order('CreatedAt', { ascending: false });
-            
-            const divP = document.getElementById('list-pending');
-            const divS = document.getElementById('list-paid');
-            const divA = document.getElementById('list-available');
-            divP.innerHTML = ""; divS.innerHTML = ""; divA.innerHTML = "";
-
-            data?.forEach(item => {
-                const img = item.image_url || OFFLINE_IMG;
-                const html = `<div class="item-strip">
-                    <img src="${img}" class="img-mini" onerror="this.src='${OFFLINE_IMG}'">
-                    <div style="flex:1"><strong>${item.ItemName}</strong><br><small>${item.BrandSku || 'No SKU'} | $${item.ListedPrice}</small></div>
-                    <div style="display:flex; gap:5px;">
-                        ${item.Status === 'Available' ? `<button class="btn-action" onclick="claim('${item.id}')">Claim</button>` : ''}
-                        ${item.Status === 'Pending' && !item.PaymentReceived ? `<button class="btn-action" onclick="markPaid('${item.id}')">Paid?</button>` : ''}
-                        ${item.Status === 'Pending' && item.PaymentReceived ? `<button class="btn-action" onclick="ship('${item.id}')">Ship</button>` : ''}
-                        <button onclick="deleteItem('${item.id}')" style="color:red; border:none; background:none; cursor:pointer; font-size:18px;">×</button>
+        <div class="card">
+            <div class="station-header"><h3>1. Inventory Intake</h3></div>
+            <div class="intake-body">
+                <form id="inventoryForm">
+                    <div class="form-grid">
+                        <div style="grid-column: span 2;"><label>Item Name *</label><input type="text" id="ItemName" required></div>
+                        <div><label>Brand SKU</label><input type="text" id="BrandSku" placeholder="BP-101"></div>
+                        <div><label>Category</label><select id="ItemCategory">
+                            <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Necklace Set</option><option>Earring Set</option><option>Set (Mixed)</option>
+                        </select></div>
+                        <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
                     </div>
-                </div>`;
-                if (item.Status === 'Available') divA.innerHTML += html;
-                else if (item.Status === 'Pending' && !item.PaymentReceived) divP.innerHTML += html;
-                else if (item.Status === 'Pending' && item.PaymentReceived) divS.innerHTML += html;
-            });
-        };
-
-        window.claim = async (id) => {
-            const h = prompt("Buyer:"); const b = prompt("Bag #:");
-            if (h && b) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: h, BagNumber: b, PaymentReceived: false }).eq('id', id);
-            location.reload();
-        };
-
-        window.markPaid = async (id) => {
-            const p = prompt("Final Sale Price:");
-            if (p) await _sb.from('InventoryHistory').update({ PaymentReceived: true, SalePrice: parseFloat(p) }).eq('id', id);
-            location.reload();
-        };
-
-        window.ship = async (id) => {
-            const t = prompt("Tracking #:");
-            if (t) await _sb.from('InventoryHistory').update({ Status: 'Shipped', TrackingNumber: t }).eq('id', id);
-            location.reload();
-        };
-
-        window.deleteItem = async (id) => { if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); } };
-
-        window.onload = function() {
-            _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            _sb.auth.getSession().then(({data: {session}}) => {
-                if (session) {
-                    document.getElementById('authBox').style.display = 'none';
-                    document.getElementById('mainApp').style.display = 'block';
-                    document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
-                    loadEverything();
-                } else {
-                    document.getElementById('authBox').style.display = 'block';
-                    document.getElementById('mainApp').style.display = 'none';
-                }
-            });
-        };
-    </script>
+                    <div class="form-grid">
+                        <div><label>Plating</label><select id="Plating">
+                            <option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option><option>Hematite</option
