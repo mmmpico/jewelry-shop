@@ -85,4 +85,137 @@
 <script>
     const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-    const COLLECTIONS = ["Originals 2024", "Originals 2025", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Sterling Club", "Elevated Elegance", "Jan 2025 Birthday", "Feb 2025 Birthday", "Mar
+    const COLLECTIONS = ["Originals 2024", "Originals 2025", "Spring Stacks 2024", "Summer Stacks 2024", "Fall Stacks 2024", "Wicked 2024", "Holiday Stacks 2024", "Sterling Club", "Elevated Elegance", "Jan 2025 Birthday", "Feb 2025 Birthday", "Mar 2025 Birthday", "Apr 2025 Birthday", "May 2025 Birthday", "Jun 2025 Birthday", "Jul 2025 Birthday", "Aug 2025 Birthday", "Sep 2025 Birthday", "Oct 2025 Birthday", "Nov 2025 Birthday", "Dec 2025 Birthday"];
+    
+    var _sb;
+    const NO_IMG = "https://via.placeholder.com/150?text=No+Photo";
+
+    // INITIALIZE SUPABASE
+    _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    window.onload = function() {
+        checkUser();
+    };
+
+    async function checkUser() {
+        const { data: { session } } = await _sb.auth.getSession();
+        if (session) {
+            showApp();
+        } else {
+            showLogin();
+        }
+    }
+
+    function showApp() {
+        document.getElementById('authBox').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
+        loadEverything();
+    }
+
+    function showLogin() {
+        document.getElementById('authBox').style.display = 'block';
+        document.getElementById('mainApp').style.display = 'none';
+    }
+
+    async function doLogin() {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('pass').value;
+        const btn = document.getElementById('loginBtn');
+        btn.innerText = "Verifying...";
+        
+        const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
+        if (error) {
+            alert("Login Error: " + error.message);
+            btn.innerText = "Sign In to Dashboard";
+        } else {
+            location.reload(); // Refresh to trigger checkUser()
+        }
+    }
+
+    async function doLogout() {
+        await _sb.auth.signOut();
+        location.reload();
+    }
+
+    async function uploadItem() {
+        const btn = document.getElementById('saveBtn');
+        if (!document.getElementById('inventoryForm').checkValidity()) return alert("Fill in required fields!");
+        btn.innerText = "Saving..."; btn.disabled = true;
+
+        let finalUrl = "";
+        const file = document.getElementById('ItemImage').files[0];
+        if (file) {
+            const fileName = `img-${Date.now()}`;
+            await _sb.storage.from('jewelry-photos').upload(fileName, file);
+            finalUrl = _sb.storage.from('jewelry-photos').getPublicUrl(fileName).data.publicUrl;
+        }
+
+        const { data: { user } } = await _sb.auth.getUser();
+        const { error } = await _sb.from('InventoryHistory').insert([{
+            ItemName: document.getElementById('ItemName').value, SKU: document.getElementById('SKU').value,
+            ItemCategory: document.getElementById('ItemCategory').value, Collection: document.getElementById('Collection').value,
+            Plating: document.getElementById('Plating').value, Rarity: document.getElementById('Rarity').value,
+            Stone: document.getElementById('Stone').value, CostPrice: parseFloat(document.getElementById('CostPrice').value) || 0,
+            ListedPrice: parseFloat(document.getElementById('ListedPrice').value) || 0, SetCount: parseInt(document.getElementById('SetCount').value) || 1,
+            image_url: finalUrl, Status: 'Available', user_id: user.id, creator_handle: 'destashe'
+        }]);
+
+        if (error) { alert("Error: " + error.message); btn.disabled = false; btn.innerText = "+ Add to Vault"; }
+        else { location.reload(); }
+    }
+
+    async function loadEverything() {
+        const { data: { user } } = await _sb.auth.getUser();
+        const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('ItemName', 'SYSTEM_STORE_STATUS').neq('Status','Closed').order('CreatedAt', { ascending: false });
+        
+        const divPending = document.getElementById('list-pending');
+        const divPaid = document.getElementById('list-paid');
+        const divAvail = document.getElementById('list-available');
+        divPending.innerHTML = ""; divPaid.innerHTML = ""; divAvail.innerHTML = "";
+
+        const now = new Date();
+        data?.forEach(item => {
+            const canDelete = (item.Status === 'Available' && Math.floor((now - new Date(item.CreatedAt)) / 60000) < 60);
+            const img = item.image_url || NO_IMG;
+            const html = `<div class="item-strip">
+                <img src="${img}" class="img-mini" onerror="this.src='${NO_IMG}'">
+                <div style="flex:1"><strong>${item.ItemName}</strong><br><small>${item.SKU || 'No SKU'} • MSRP: $${item.ListedPrice}</small></div>
+                ${item.Status === 'Pending' ? `<div class="bag-badge">Bag ${item.BagNumber}</div><div style="font-size:11px; margin-left:10px;">@${item.ClaimedBy}</div>` : ''}
+                <div style="display:flex; gap:5px; align-items:center;">
+                    ${item.Status === 'Available' ? `<button class="btn-action" onclick="claim('${item.id}')">Claim</button>` : ''}
+                    ${item.Status === 'Pending' && !item.PaymentReceived ? `<button class="btn-action" onclick="markPaid('${item.id}')">Paid?</button>` : ''}
+                    ${item.Status === 'Pending' && item.PaymentReceived ? `<button class="btn-action" onclick="ship('${item.id}')">Ship</button>` : ''}
+                    ${canDelete ? `<button onclick="deleteItem('${item.id}')" style="color:red; border:none; background:none; cursor:pointer; font-size:18px; font-weight:bold;">×</button>` : ''}
+                </div>
+            </div>`;
+
+            if (item.Status === 'Available') divAvail.innerHTML += html;
+            else if (item.Status === 'Pending' && !item.PaymentReceived) divPending.innerHTML += html;
+            else if (item.Status === 'Pending' && item.PaymentReceived) divPaid.innerHTML += html;
+        });
+    }
+
+    async function claim(id) {
+        const handle = prompt("Buyer Social Handle:");
+        const bag = prompt("Bag Number:");
+        if (handle && bag) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: handle, BagNumber: bag, PaymentReceived: false }).eq('id', id);
+        location.reload();
+    }
+
+    async function markPaid(id) {
+        const price = prompt("Final Sale Price:");
+        if (price) await _sb.from('InventoryHistory').update({ PaymentReceived: true, SalePrice: parseFloat(price) }).eq('id', id);
+        location.reload();
+    }
+
+    async function ship(id) {
+        const track = prompt("Tracking Number:");
+        if (track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', TrackingNumber: track }).eq('id', id);
+        location.reload();
+    }
+
+    async function deleteItem(id) { if (confirm("Delete permanently?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); } }
+</script>
+</body>
+</html>
