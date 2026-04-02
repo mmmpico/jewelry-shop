@@ -10,7 +10,6 @@
         .auth-input, input, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         .auth-btn, .save-btn { width: 100%; padding: 15px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
         
-        /* THE POWER ROW LAYOUT */
         .row { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
         .row div { flex: 1; min-width: 150px; }
         label { display: block; font-size: 10px; font-weight: bold; margin-bottom: 4px; color: #999; text-transform: uppercase; }
@@ -18,12 +17,9 @@
         table { width: 100%; border-collapse: collapse; margin-top: 30px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; font-size: 13px; }
         .thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid #eee; }
-        
         .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
         .s-available { background: #e6fffa; color: #2c7a7b; }
         .s-pending { background: #fff9e6; color: #b7791f; border: 1px solid #fbd38d; }
-        .s-shipped { background: #ebf8ff; color: #2b6cb0; }
-        .s-issue { background: #fff5f5; color: #c53030; }
     </style>
 </head>
 <body>
@@ -47,7 +43,7 @@
             <div>
                 <label>Category</label>
                 <select id="ItemCategory">
-                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Necklace Set</option><option>Earring Set</option><option>Stacks</option><option>Set (Mixed)</option>
+                    <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Set</option>
                 </select>
             </div>
             <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
@@ -71,7 +67,8 @@
 
         <div class="row">
             <div><label>Cost Price ($) *</label><input type="number" id="CostPrice" step="0.01" required></div>
-            <div><label>Retail Price (Sell) ($) *</label><input type="number" id="Price" step="0.01" required></div>
+            <div><label>Retail Price ($) *</label><input type="number" id="Price" step="0.01" required></div>
+            <div><label>Pieces in Set</label><input type="number" id="SetCount" value="1" min="1"></div>
             <div><label>Photo</label><input type="file" id="ItemImage" accept="image/*"></div>
         </div>
         
@@ -83,8 +80,8 @@
             <tr>
                 <th>Photo</th>
                 <th>Item Details</th>
+                <th>Set Count</th>
                 <th>Status</th>
-                <th>Shipping Info</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -147,6 +144,7 @@
             Stone: document.getElementById('Stone').value,
             CostPrice: parseFloat(document.getElementById('CostPrice').value),
             Price: parseFloat(document.getElementById('Price').value),
+            SetCount: parseInt(document.getElementById('SetCount').value),
             image_url: url,
             Status: 'Available',
             user_id: user.id,
@@ -163,46 +161,22 @@
             .select('*')
             .eq('user_id', user.id)
             .neq('ItemName', 'SYSTEM_STORE_STATUS')
-            .neq('Status', 'Closed')
             .order('CreatedAt', { ascending: false });
 
         const tbody = document.querySelector('#inventoryTable tbody');
         tbody.innerHTML = data.map(item => `
-            <tr class="row-${item.Status.toLowerCase()}">
+            <tr>
                 <td><img src="${item.image_url}" class="thumb"></td>
-                <td><strong>${item.ItemName}</strong><br><small>${item.Collection} | ${item.Stone || ''}</small></td>
+                <td><strong>${item.ItemName}</strong><br><small>${item.Collection}</small></td>
+                <td>${item.SetCount || 1} pcs</td>
                 <td><span class="status-badge s-${item.Status.toLowerCase()}">${item.Status}</span></td>
-                <td>${item.ClaimedBy ? `Buyer: ${item.ClaimedBy} | Bag: ${item.BagNumber || '?'}` : 'Available'}</td>
-                <td>
-                    <button onclick="manageStatus('${item.id}', '${item.Status}')" style="cursor:pointer; padding:5px 10px; border-radius:4px; border:1px solid #ddd; font-size:11px;">UPDATE</button>
-                    <button onclick="deleteMistake('${item.id}')" style="color:red; border:none; background:none; cursor:pointer; font-size:10px; margin-left:10px;">Delete</button>
-                </td>
+                <td><button onclick="deleteItem('${item.id}')" style="color:red; cursor:pointer; border:none; background:none;">Delete</button></td>
             </tr>
         `).join('');
     }
 
-    async function manageStatus(id, current) {
-        if (current === 'Available') {
-            const buyer = prompt("Buyer Social Handle:");
-            const bag = prompt("Bag Number:");
-            if (buyer && bag) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: buyer, BagNumber: bag }).eq('id', id);
-        } else if (current === 'Pending') {
-            const choice = prompt("Type 'SHIP' to add tracking or 'RELEASE' to restock:").toUpperCase();
-            if (choice === 'SHIP') {
-                const carrier = prompt("Carrier (USPS/UPS):", "USPS");
-                const track = prompt("Tracking Number:");
-                if (track) await _sb.from('InventoryHistory').update({ Status: 'Shipped', Carrier: carrier, TrackingNumber: track }).eq('id', id);
-            } else if (choice === 'RELEASE') {
-                await _sb.from('InventoryHistory').update({ Status: 'Available', ClaimedBy: null, BagNumber: null }).eq('id', id);
-            }
-        } else {
-            if (confirm("Close transaction?")) await _sb.from('InventoryHistory').update({ Status: 'Closed' }).eq('id', id);
-        }
-        location.reload();
-    }
-
-    async function deleteMistake(id) {
-        if (confirm("Delete permanently?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
+    async function deleteItem(id) {
+        if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); }
     }
 </script>
 </body>
