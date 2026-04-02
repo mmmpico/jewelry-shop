@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Command Center - Audited Master</title>
+    <meta charset="UTF-8">
+    <title>DeStashe Command Center - Final Fix</title>
+    
+    <link rel="icon" href="data:,">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
+        // CONFIGURATION
         const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
         const COLLECTIONS = ["Originals 2023", "Originals 2024", "Originals 2025", "Originals 2026", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club", "Elevated Elegance", "Jan Birthday", "Feb Birthday", "Mar Birthday", "Apr Birthday", "May Birthday", "Jun Birthday", "Jul Birthday", "Aug Birthday", "Sep Birthday", "Oct Birthday", "Nov Birthday", "Dec Birthday"];
@@ -12,36 +17,20 @@
 
         let _sb;
 
-        // AUTH FUNCTIONS
-        function initSupabase() {
-            _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-            checkUser();
-        }
-
-        async function checkUser() {
-            const { data: { session } } = await _sb.auth.getSession();
-            if (session) {
-                document.getElementById('authBox').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-                document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
-                loadEverything();
-            } else {
-                document.getElementById('authBox').style.display = 'block';
-                document.getElementById('mainApp').style.display = 'none';
-            }
-        }
-
-        async function doSignIn() {
+        // ATTACH FUNCTIONS TO WINDOW (Ensures they are defined immediately)
+        window.doSignIn = async function() {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('pass').value;
             const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
             if (error) alert(error.message); else location.reload();
-        }
+        };
 
-        async function doSignOut() { await _sb.auth.signOut(); location.reload(); }
+        window.doSignOut = async function() { 
+            await _sb.auth.signOut(); 
+            location.reload(); 
+        };
 
-        // INVENTORY FUNCTIONS
-        async function uploadItem() {
+        window.uploadItem = async function() {
             const btn = document.getElementById('saveBtn');
             if (!document.getElementById('inventoryForm').checkValidity()) return alert("Fill in required fields!");
             btn.innerText = "Processing..."; btn.disabled = true;
@@ -74,9 +63,9 @@
 
             if (error) { alert("DB Error: " + error.message); btn.disabled = false; btn.innerText = "+ Add to Vault"; }
             else { location.reload(); }
-        }
+        };
 
-        async function loadEverything() {
+        window.loadEverything = async function() {
             const { data: { user } } = await _sb.auth.getUser();
             const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('ItemName', 'SYSTEM_STORE_STATUS').neq('Status','Closed').order('CreatedAt', { ascending: false });
             
@@ -101,30 +90,57 @@
                 else if (item.Status === 'Pending' && !item.PaymentReceived) divP.innerHTML += html;
                 else if (item.Status === 'Pending' && item.PaymentReceived) divS.innerHTML += html;
             });
-        }
+        };
 
-        async function claim(id) {
+        // FULFILLMENT GLOBALS
+        window.claim = async (id) => {
             const h = prompt("Buyer:"); const b = prompt("Bag #:");
             if (h && b) await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: h, BagNumber: b, PaymentReceived: false }).eq('id', id);
             location.reload();
-        }
+        };
 
-        async function markPaid(id) {
+        window.markPaid = async (id) => {
             const p = prompt("Final Sale Price:");
             if (p) await _sb.from('InventoryHistory').update({ PaymentReceived: true, SalePrice: parseFloat(p) }).eq('id', id);
             location.reload();
-        }
+        };
 
-        async function ship(id) {
+        window.ship = async (id) => {
             const t = prompt("Tracking:");
             if (t) await _sb.from('InventoryHistory').update({ Status: 'Shipped', TrackingNumber: t }).eq('id', id);
             location.reload();
-        }
+        };
 
-        async function deleteItem(id) { if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); } }
+        window.deleteItem = async (id) => { if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); location.reload(); } };
 
-        window.onload = initSupabase;
+        // INITIALIZE
+        window.onload = function() {
+            _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            _sb.auth.getSession().then(({data: {session}}) => {
+                if (session) {
+                    document.getElementById('authBox').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'block';
+                    document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
+                    loadEverything();
+                } else {
+                    document.getElementById('authBox').style.display = 'block';
+                }
+            });
+        };
     </script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f4f7f9; padding
+        body { font-family: 'Inter', sans-serif; background: #f4f7f9; padding: 20px; color: #333; margin: 0; }
+        .container { max-width: 1400px; margin: auto; display: none; }
+        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid #eee; display:none; }
+        .auth-input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 15px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; text-transform: uppercase; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 24px; border: 1px solid #eef2f6; overflow: hidden; }
+        .station-header { background: #fafbfc; padding: 15px 20px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; }
+        .station-header h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 800; }
+        .intake-body { padding: 25px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        label { font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 5px; text-transform: uppercase; }
+        input, select { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box; background: #fcfdfe; }
+        .btn-main { background: #1e293b; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; }
+        .dashboard-grid { display: grid; grid-template
