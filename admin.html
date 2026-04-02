@@ -1,44 +1,107 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>DeStashe Command Center - V25 Stable</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>DeStashe Command Center - RECOVERY</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Inter', -apple-system, sans-serif; background: #f4f7f9; padding: 20px; color: #333; margin: 0; }
-        .container { max-width: 1400px; margin: auto; display: none; }
-        
-        /* LOGIN BOX */
-        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid #eee; }
-        .auth-input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
-        .btn-login { width: 100%; padding: 15px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; text-transform: uppercase; }
-        .error-msg { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; font-weight: bold; }
-
-        /* DASHBOARD GRID */
-        .card { background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 24px; border: 1px solid #eef2f6; overflow: hidden; }
-        .station-header { background: #fafbfc; padding: 15px 20px; border-bottom: 1px solid #edf2f7; display: flex; justify-content: space-between; align-items: center; }
-        .station-header h3 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; font-weight: 800; }
-        .intake-body { padding: 25px; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        label { font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 5px; text-transform: uppercase; }
-        input, select { padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; width: 100%; box-sizing: border-box; background: #fcfdfe; }
-        .btn-main { background: #1e293b; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; }
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .item-strip { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
-        .img-mini { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; background: #f1f5f9; border: 1px solid #eee; }
-        .btn-action { padding: 6px 12px; border-radius: 4px; border: 1px solid #e2e8f0; cursor: pointer; font-size: 10px; font-weight: 700; background: white; }
+        body { font-family: sans-serif; background: #f0f2f5; padding: 20px; }
+        .auth-card { max-width: 350px; margin: 100px auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 12px; background: #1e293b; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .container { max-width: 1200px; margin: auto; display: none; }
+        .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        label { display: block; font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-main { background: #1e293b; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .item-row { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        .img-preview { width: 45px; height: 45px; object-fit: cover; border-radius: 4px; background: #eee; }
     </style>
 </head>
 <body>
 
-<div id="authBox">
-    <h2 style="color:#d4af37; margin-bottom:20px;">DeStashe Admin</h2>
-    <input type="email" id="email" class="auth-input" placeholder="Email Address">
+<div id="authBox" class="auth-card">
+    <h2 style="color:#d4af37">DeStashe Admin</h2>
+    <input type="email" id="email" class="auth-input" placeholder="Email">
     <input type="password" id="pass" class="auth-input" placeholder="Password">
-    <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
-    <div id="loginError" class="error-msg"></div>
+    <button class="btn-login" onclick="login()">SIGN IN</button>
+    <p id="errMsg" style="color:red; font-size:12px; display:none;"></p>
 </div>
 
-<div class="container" id="mainApp">
-    <header style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
+<div id="mainApp" class="container">
+    <div style="display:flex; justify-content:space-between;">
         <h1>Command Center</h1>
-        <button onclick="doLogout()" style="background:none; border:none; color:#94a3b8;
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div class="card">
+        <h3>1. Inventory Intake</h3>
+        <form id="inventoryForm">
+            <div class="form-grid">
+                <div style="grid-column: span 2;"><label>Item Name *</label><input type="text" id="ItemName" required></div>
+                <div><label>SKU / ID</label><input type="text" id="SKU"></div>
+                <div><label>Category</label>
+                    <select id="ItemCategory">
+                        <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Necklace Set</option><option>Earring Set</option><option>Set (Mixed)</option>
+                    </select>
+                </div>
+                <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
+            </div>
+            <div class="form-grid">
+                <div><label>Plating</label>
+                    <select id="Plating">
+                        <option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option><option>Hematite</option><option>Mixed</option>
+                    </select>
+                </div>
+                <div><label>Stone</label><input type="text" id="Stone"></div>
+                <div><label>Rarity</label>
+                    <select id="Rarity">
+                        <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Ultra Rare Unicorn</option><option>Bella</option><option>Lillian</option><option>Diamond</option>
+                    </select>
+                </div>
+                <div><label>CostPrice</label><input type="number" id="CostPrice" step="0.01"></div>
+                <div><label>ListedPrice *</label><input type="number" id="ListedPrice" step="0.01" required></div>
+                <div><label>Set Count</label><input type="number" id="SetCount" value="1"></div>
+            </div>
+            <input type="file" id="ItemImage">
+            <button type="button" class="btn-main" onclick="save()">+ Add Item</button>
+        </form>
+    </div>
+
+    <div class="dashboard">
+        <div class="card"><h4>2. Claimed (Unpaid)</h4><div id="list-pending"></div></div>
+        <div class="card"><h4>3. Paid (Ready to Ship)</h4><div id="list-paid"></div></div>
+        <div class="card" style="grid-column: span 2;"><h4>4. Available Merchandise</h4><div id="list-available"></div></div>
+    </div>
+</div>
+
+<script>
+    const S_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
+    const S_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
+    const COLS = ["Originals 2024", "Originals 2025", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Jan Birthday", "Feb Birthday", "Mar Birthday", "Apr Birthday", "May Birthday", "Jun Birthday", "Jul Birthday", "Aug Birthday", "Sep Birthday", "Oct Birthday", "Nov Birthday", "Dec Birthday"];
+    
+    let _sb;
+
+    // Direct initialization
+    try {
+        _sb = window.supabase.createClient(S_URL, S_KEY);
+        _sb.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                document.getElementById('authBox').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('cols').innerHTML = COLS.map(c => `<option value="${c}">`).join('');
+                refresh();
+            } else {
+                document.getElementById('authBox').style.display = 'block';
+                document.getElementById('mainApp').style.display = 'none';
+            }
+        });
+    } catch (err) {
+        alert("System failed to load. Please refresh.");
+    }
+
+    async function login() {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('pass').value;
+        const {
