@@ -88,4 +88,109 @@
 
         // NATIVE FETCH ENGINE (ZERO LIBRARIES)
         async function callSupabase(path, method = 'GET', body = null, isAuth = false) {
-            const endpoint = isAuth ? `${API_URL}/auth/v1/${
+            const endpoint = isAuth ? `${API_URL}/auth/v1/${path}` : `${API_URL}/rest/v1/${path}`;
+            const headers = {
+                'apikey': API_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            };
+            const token = localStorage.getItem('ds_token');
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(endpoint, { method, headers, body: body ? JSON.stringify(body) : null });
+            return res.json();
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('pass').value;
+            const data = await callSupabase('token?grant_type=password', 'POST', { email, password }, true);
+            if (data.access_token) {
+                localStorage.setItem('ds_token', data.access_token);
+                localStorage.setItem('ds_user', data.user.id);
+                location.reload();
+            } else { alert("Login Failed"); }
+        }
+
+        function handleLogout() { localStorage.clear(); location.reload(); }
+
+        async function handleSave() {
+            const body = {
+                ItemName: document.getElementById('iName').value, BrandSku: document.getElementById('iSku').value,
+                ItemCategory: document.getElementById('iCat').value, Collection: document.getElementById('iCol').value,
+                Plating: document.getElementById('iPlat').value, Rarity: document.getElementById('iRare').value,
+                SetCount: parseInt(document.getElementById('iSet').value) || 1,
+                CostPrice: parseFloat(document.getElementById('iCost').value) || 0,
+                ListedPrice: parseFloat(document.getElementById('iMSRP').value) || 0,
+                Status: 'Available', user_id: localStorage.getItem('ds_user')
+            };
+            await callSupabase('InventoryHistory', 'POST', body);
+            document.getElementById('iForm').reset();
+            refreshData();
+        }
+
+        async function refreshData() {
+            const userId = localStorage.getItem('ds_user');
+            const data = await callSupabase(`InventoryHistory?user_id=eq.${userId}&Status=neq.Closed&ItemName=neq.SYSTEM_STORE_STATUS&order=CreatedAt.desc`);
+            const divP = document.getElementById('list-P'), divS = document.getElementById('list-S'), divA = document.getElementById('list-A');
+            divP.innerHTML = divS.innerHTML = divA.innerHTML = "";
+
+            data.forEach(item => {
+                const isPaid = (item.Status === 'Pending' && item.PaymentReceived === true);
+                const html = `<div class="item-row" id="sku-${item.BrandSku}">
+                    <div style="flex:1">
+                        <strong>${item.ItemName}</strong> ${item.SetCount > 1 ? `<span class="badge-set">SET: ${item.SetCount}</span>` : ''} <br>
+                        <small>${item.BrandSku || 'NO SKU'} | ${item.Collection} | MSRP: $${item.ListedPrice}</small>
+                    </div>
+                    ${item.Status === 'Pending' ? `<div class="badge-bag">Bag ${item.BagNumber}</div><div style="font-size:10px; margin:0 10px;">@${item.ClaimedBy}</div>` : ''}
+                    <div style="display:flex; gap:5px;">
+                        ${item.Status === 'Available' ? `<button class="btn-sm" onclick="runAction('${item.id}', 'claim')">Claim</button>` : ''}
+                        ${item.Status === 'Pending' && !item.PaymentReceived ? `<button class="btn-sm" onclick="runAction('${item.id}', 'paid')">Paid?</button>` : ''}
+                        ${item.Status === 'Pending' && item.PaymentReceived ? `<button class="btn-sm" onclick="runAction('${item.id}', 'ship')">Ship</button>` : ''}
+                        <button class="btn-sm" style="color:red;" onclick="runAction('${item.id}', 'del')">×</button>
+                    </div>
+                </div>`;
+                if (item.Status === 'Available') divA.innerHTML += html;
+                else if (isPaid) divS.innerHTML += html;
+                else divP.innerHTML += html;
+            });
+        }
+
+        async function runAction(id, type) {
+            let update = {};
+            if (type === 'claim') {
+                const h = prompt("Buyer Social:"), b = prompt("Bag #:");
+                if (h && b) update = { Status: 'Pending', ClaimedBy: h, BagNumber: b, PaymentReceived: false };
+            } else if (type === 'paid') {
+                const p = prompt("Final Sale Price:");
+                if (p) update = { PaymentReceived: true, SalePrice: parseFloat(p) };
+            } else if (type === 'ship') {
+                const t = prompt("Tracking #:");
+                if (t) update = { Status: 'Shipped', TrackingNumber: t };
+            } else if (type === 'del') {
+                if (confirm("Delete?")) { await callSupabase(`InventoryHistory?id=eq.${id}`, 'DELETE'); return refreshData(); }
+            }
+            if (Object.keys(update).length > 0) { await callSupabase(`InventoryHistory?id=eq.${id}`, 'PATCH', update); refreshData(); }
+        }
+
+        // SCANNER LISTENER
+        document.getElementById('globalSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && document.getElementById('scannerToggle').checked) {
+                const sku = this.value;
+                const target = document.getElementById(`sku-${sku}`);
+                if (target) { target.style.background = "#fff9c4"; target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                this.value = "";
+            }
+        });
+
+        // AUTO-INITIALIZE
+        const token = localStorage.getItem('ds_token');
+        if (token) {
+            document.getElementById('authBox').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
+            refreshData();
+        }
+    </script>
+</body>
+</html>
