@@ -2,12 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>DeStashe Hub - Sticky Session V37</title>
+    <title>DeStashe Hub - Direct Entry V38</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background: #f4f7f9; padding: 20px; color: #333; margin: 0; }
-        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid #eee; display: none; }
+        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid #eee; }
         .container { max-width: 1400px; margin: auto; display: none; }
         .auth-input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         .btn-login { width: 100%; padding: 15px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; text-transform: uppercase; }
@@ -28,3 +28,50 @@
 
     <div id="authBox">
         <h2 style="color:#d4af37; margin-bottom:20px;">DeStashe Admin</h2>
+        <input type="email" id="email" class="auth-input" placeholder="Email Address">
+        <input type="password" id="pass" class="auth-input" placeholder="Password">
+        <button class="btn-login" id="submitLogin">Sign In</button>
+    </div>
+
+    <div class="container" id="mainApp">
+        <header style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
+            <h1>Command Center</h1>
+            <button onclick="logoutNow()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-weight:bold;">Log Out</button>
+        </header>
+
+        <div class="card">
+            <div class="station-header"><h3>1. Inventory Intake</h3></div>
+            <div class="intake-body">
+                <form id="inventoryForm">
+                    <div class="form-grid">
+                        <div style="grid-column: span 2;"><label>Item Name *</label><input type="text" id="ItemName" required></div>
+                        <div><label>Brand SKU</label><input type="text" id="BrandSku" placeholder="BP-101"></div>
+                        <div><label>Category</label><select id="ItemCategory">
+                            <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Necklace Set</option><option>Earring Set</option><option>Set (Mixed)</option>
+                        </select></div>
+                        <div><label>Collection *</label><input list="cols" id="Collection" required><datalist id="cols"></datalist></div>
+                    </div>
+                    <div class="form-grid">
+                        <div><label>Plating</label><select id="Plating">
+                            <option>Gold</option><option>Rose Gold</option><option>Rhodium</option><option>Silver</option><option>Hematite</option><option>Mixed</option>
+                        </select></div>
+                        <div><label>Stone</label><input type="text" id="Stone"></div>
+                        <div><label>Rarity</label><select id="Rarity">
+                            <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Ultra Rare Unicorn</option><option>Bella</option><option>Lillian</option><option>Diamond</option>
+                        </select></div>
+                        <div><label>CostPrice (Cost)</label><input type="number" id="CostPrice" step="0.01"></div>
+                        <div><label>ListedPrice (MSRP) *</label><input type="number" id="ListedPrice" step="0.01" required></div>
+                        <div><label>Set Count</label><input type="number" id="SetCount" value="1"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px solid #f1f5f9; padding-top:15px; margin-top:10px;">
+                        <input type="file" id="ItemImage" accept="image/*">
+                        <button type="button" class="btn-main" id="saveBtn" onclick="uploadItem()">+ Add to Vault</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card"><div class="station-header"><h3>2. Claimed</h3></div><div id="list-pending"></div></div>
+            <div class="card"><div class="station-header"><h3>3. Paid</h3></div><div id="list-paid"></div></div>
+            <div class="card" style="grid-column: span 2;"><div class="station-header"><h3>4. Available Merchandise</h3></div><div id="list-available
