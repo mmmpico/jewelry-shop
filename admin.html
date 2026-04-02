@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>DeStashe Hub - V55 Direct-Feed</title>
+    <title>DeStashe Hub - V56 Fast-Track</title>
     <style>
         :root { --slate: #1e293b; --gold: #d4af37; --bg: #f8fafc; --border: #e2e8f0; }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #334155; margin: 0; padding: 20px; }
@@ -19,15 +19,14 @@
         .btn-sm { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-size: 10px; font-weight: 700; }
         .item-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
         .badge-set { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10px; }
-        .badge-bag { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10px; }
     </style>
 </head>
 <body>
 
     <div id="authBox" class="auth-card">
         <h2 style="color:var(--gold)">DeStashe Admin</h2>
-        <input type="email" id="email" placeholder="Email" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
-        <input type="password" id="pass" placeholder="Password" style="width:100%; padding:12px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd;">
+        <input type="email" id="email" placeholder="Email" style="width:100%; padding:12px; border-radius:8px; border:1px solid #ddd; margin-bottom:10px;">
+        <input type="password" id="pass" placeholder="Password" style="width:100%; padding:12px; border-radius:8px; border:1px solid #ddd; margin-bottom:15px;">
         <button class="btn-main" onclick="doLogin()">Sign In</button>
     </div>
 
@@ -71,7 +70,7 @@
     <script>
         const BASE = 'https://fnlgermttuaibfvmbite.supabase.co';
         const KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-        const COLLECTIONS = ["Originals 2024", "Originals 2025", "Originals 2026", "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday", "April 2025 Birthday", "May 2025 Birthday", "June 2025 Birthday", "July 2025 Birthday", "August 2025 Birthday", "September 2025 Birthday", "October 2025 Birthday", "November 2025 Birthday", "December 2025 Birthday", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club"];
+        const COLLECTIONS = ["Originals 2024", "Originals 2025", "Originals 2026", "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday", "April 2025 Birthday", "May 2025 Birthday", "June 2025 Birthday", "July 2025 Birthday", "August 2025 Birthday", "September 2025 Birthday", "October 2025 Birthday", "November 2025 Birthday", "December 2025 Birthday", "January 2026 Birthday", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club"];
 
         async function doLogin() {
             const email = document.getElementById('email').value;
@@ -85,7 +84,7 @@
                 localStorage.setItem('sb-token', data.access_token);
                 localStorage.setItem('sb-user', data.user.id);
                 location.reload();
-            } else { alert("Login Failed: Check Credentials"); }
+            } else { alert("Login Failed"); }
         }
 
         function doLogout() { localStorage.clear(); location.reload(); }
@@ -121,7 +120,9 @@
         }
 
         async function refresh() {
-            const data = await api(`InventoryHistory?user_id=eq.${localStorage.getItem('sb-user')}&Status=neq.Closed&ItemName=neq.SYSTEM_STORE_STATUS&order=CreatedAt.desc`);
+            const userId = localStorage.getItem('sb-user');
+            const data = await api(`InventoryHistory?user_id=eq.${userId}&Status=neq.Closed&ItemName=neq.SYSTEM_STORE_STATUS&order=CreatedAt.desc`);
+            
             const divP = document.getElementById('list-P'), divS = document.getElementById('list-S'), divA = document.getElementById('list-A');
             divP.innerHTML = ""; divS.innerHTML = ""; divA.innerHTML = "";
 
@@ -132,4 +133,43 @@
                         <strong>${item.ItemName}</strong> ${item.SetCount > 1 ? `<span class="badge-set">SET: ${item.SetCount}</span>` : ''} <br>
                         <small>${item.BrandSku || 'NO SKU'} | ${item.Collection} | MSRP: $${item.ListedPrice}</small>
                     </div>
-                    ${item.
+                    ${item.Status === 'Pending' ? `<div style="font-size:10px; margin:0 10px;">Bag ${item.BagNumber} | @${item.ClaimedBy}</div>` : ''}
+                    <div style="display:flex; gap:5px;">
+                        ${item.Status === 'Available' ? `<button class="btn-sm" onclick="act('${item.id}', 'claim')">Claim</button>` : ''}
+                        ${item.Status === 'Pending' && !item.PaymentReceived ? `<button class="btn-sm" onclick="act('${item.id}', 'paid')">Paid?</button>` : ''}
+                        ${item.Status === 'Pending' && item.PaymentReceived ? `<button class="btn-sm" onclick="act('${item.id}', 'ship')">Ship</button>` : ''}
+                        <button class="btn-sm" style="color:red;" onclick="act('${item.id}', 'del')">×</button>
+                    </div>
+                </div>`;
+                if (item.Status === 'Available') divA.innerHTML += html;
+                else if (isPaid) divS.innerHTML += html;
+                else divP.innerHTML += html;
+            });
+        }
+
+        async function act(id, type) {
+            let update = {};
+            if (type === 'claim') {
+                const h = prompt("Buyer Social:"), b = prompt("Bag #:");
+                if (h && b) update = { Status: 'Pending', ClaimedBy: h, BagNumber: b, PaymentReceived: false };
+            } else if (type === 'paid') {
+                const p = prompt("Final Sale Price:");
+                if (p) update = { PaymentReceived: true, SalePrice: parseFloat(p) };
+            } else if (type === 'ship') {
+                const t = prompt("Tracking #:");
+                if (t) update = { Status: 'Shipped', TrackingNumber: t };
+            } else if (type === 'del') {
+                if (confirm("Delete permanently?")) { await api(`InventoryHistory?id=eq.${id}`, 'DELETE'); return refresh(); }
+            }
+            if (Object.keys(update).length > 0) { await api(`InventoryHistory?id=eq.${id}`, 'PATCH', update); refresh(); }
+        }
+
+        if (localStorage.getItem('sb-token')) {
+            document.getElementById('authBox').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
+            refresh();
+        }
+    </script>
+</body>
+</html>
