@@ -2,12 +2,13 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>DeStashe Hub - Direct Entry V38</title>
+    <title>DeStashe Hub - V39 Stable</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background: #f4f7f9; padding: 20px; color: #333; margin: 0; }
-        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid #eee; }
+        #loadingState { text-align: center; margin-top: 100px; font-weight: bold; color: #64748b; }
+        #authBox { max-width: 400px; margin: 100px auto; text-align: center; background:white; padding:40px; border-radius:16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 1px solid #eee; display: none; }
         .container { max-width: 1400px; margin: auto; display: none; }
         .auth-input { width: 100%; padding: 14px; margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         .btn-login { width: 100%; padding: 15px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; text-transform: uppercase; }
@@ -25,6 +26,8 @@
     </style>
 </head>
 <body>
+
+    <div id="loadingState">System Initializing...</div>
 
     <div id="authBox">
         <h2 style="color:#d4af37; margin-bottom:20px;">DeStashe Admin</h2>
@@ -74,4 +77,121 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card"><div class="station-header"><h3>2. Claimed</h3></div><div id="list-pending"></div></div>
             <div class="card"><div class="station-header"><h3>3. Paid</h3></div><div id="list-paid"></div></div>
-            <div class="card" style="grid-column: span 2;"><div class="station-header"><h3>4. Available Merchandise</h3></div><div id="list-available
+            <div class="card" style="grid-column: span 2;"><div class="station-header"><h3>4. Available Merchandise</h3></div><div id="list-available"></div></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
+        const COLLECTIONS = ["Originals 2024", "Originals 2025", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Jan-Dec Birthday 2025"];
+        const OFFLINE_IMG = "data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2250%22%20height%3D%2250%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Crect%20width%3D%2250%22%20height%3D%2250%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-family%3D%22Arial%22%20font-size%3D%228%22%20text-anchor%3D%22middle%22%20dy%3D%22.3em%22%20fill%3D%22%23aaa%22%3ENo%20Photo%3C%2Ftext%3E%3C%2Fsvg%3E";
+
+        let _sb;
+
+        async function init() {
+            if (typeof supabase === 'undefined') {
+                console.log("Waiting for library...");
+                setTimeout(init, 500);
+                return;
+            }
+            
+            _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            document.getElementById('loadingState').style.display = 'none';
+
+            const { data: { session } } = await _sb.auth.getSession();
+            if (session) {
+                setupDashboard();
+            } else {
+                document.getElementById('authBox').style.display = 'block';
+            }
+        }
+
+        document.getElementById('submitLogin').addEventListener('click', async () => {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            const { data, error } = await _sb.auth.signInWithPassword({ email: e, password: p });
+            if (error) alert(error.message);
+            else if (data.session) setupDashboard();
+        });
+
+        function setupDashboard() {
+            document.getElementById('authBox').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
+            loadData();
+        }
+
+        async function logoutNow() { await _sb.auth.signOut(); location.reload(); }
+
+        async function uploadItem() {
+            const btn = document.getElementById('saveBtn');
+            if (!document.getElementById('inventoryForm').checkValidity()) return alert("Fields missing!");
+            btn.innerText = "Saving..."; btn.disabled = true;
+
+            let url = "";
+            const file = document.getElementById('ItemImage').files[0];
+            if (file) {
+                const name = `img-${Date.now()}`;
+                await _sb.storage.from('jewelry-photos').upload(name, file);
+                url = _sb.storage.from('jewelry-photos').getPublicUrl(name).data.publicUrl;
+            }
+
+            const { data: { user } } = await _sb.auth.getUser();
+            await _sb.from('InventoryHistory').insert([{
+                ItemName: document.getElementById('ItemName').value, BrandSku: document.getElementById('BrandSku').value,
+                ItemCategory: document.getElementById('ItemCategory').value, Collection: document.getElementById('Collection').value,
+                Plating: document.getElementById('Plating').value, Rarity: document.getElementById('Rarity').value,
+                Stone: document.getElementById('Stone').value, CostPrice: parseFloat(document.getElementById('CostPrice').value) || 0,
+                ListedPrice: parseFloat(document.getElementById('ListedPrice').value) || 0, SetCount: parseInt(document.getElementById('SetCount').value) || 1,
+                image_url: url, Status: 'Available', user_id: user.id, creator_handle: 'destashe'
+            }]);
+            
+            document.getElementById('inventoryForm').reset();
+            btn.innerText = "+ Add to Vault"; btn.disabled = false;
+            loadData();
+        }
+
+        async function loadData() {
+            const { data: { user } } = await _sb.auth.getUser();
+            const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('ItemName', 'SYSTEM_STORE_STATUS').neq('Status', 'Closed').order('CreatedAt', { ascending: false });
+            
+            const divs = { 'Pending': document.getElementById('list-pending'), 'Paid': document.getElementById('list-paid'), 'Available': document.getElementById('list-available') };
+            divs['Pending'].innerHTML = ""; divs['Paid'].innerHTML = ""; divs['Available'].innerHTML = "";
+
+            data?.forEach(item => {
+                const isPaid = (item.Status === 'Pending' && item.PaymentReceived);
+                const targetDiv = isPaid ? divs['Paid'] : divs[item.Status] || divs['Available'];
+                
+                targetDiv.innerHTML += `<div class="item-strip">
+                    <img src="${item.image_url || OFFLINE_IMG}" class="img-mini" onerror="this.src='${OFFLINE_IMG}'">
+                    <div style="flex:1"><strong>${item.ItemName}</strong><br><small>${item.BrandSku || 'No SKU'} | $${item.ListedPrice}</small></div>
+                    ${item.Status === 'Pending' ? `<div class="bag-badge">Bag ${item.BagNumber}</div><div style="font-size:10px; margin:0 10px;">@${item.ClaimedBy}</div>` : ''}
+                    <div>
+                        ${item.Status === 'Available' ? `<button onclick="claimNow('${item.id}')">Claim</button>` : ''}
+                        ${item.Status === 'Pending' && !item.PaymentReceived ? `<button onclick="payNow('${item.id}')">Paid?</button>` : ''}
+                        ${item.Status === 'Pending' && item.PaymentReceived ? `<button onclick="shipNow('${item.id}')">Ship</button>` : ''}
+                        <button onclick="delNow('${item.id}')" style="color:red; border:none; background:none; cursor:pointer;">×</button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        window.claimNow = async (id) => {
+            const h = prompt("Buyer:"), b = prompt("Bag #:");
+            if (h && b) { await _sb.from('InventoryHistory').update({ Status: 'Pending', ClaimedBy: h, BagNumber: b, PaymentReceived: false }).eq('id', id); loadData(); }
+        };
+        window.payNow = async (id) => {
+            const p = prompt("Price:");
+            if (p) { await _sb.from('InventoryHistory').update({ PaymentReceived: true, SalePrice: parseFloat(p) }).eq('id', id); loadData(); }
+        };
+        window.shipNow = async (id) => {
+            const t = prompt("Tracking:");
+            if (t) { await _sb.from('InventoryHistory').update({ Status: 'Shipped', TrackingNumber: t }).eq('id', id); loadData(); }
+        };
+        window.delNow = async (id) => { if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); loadData(); } };
+
+        init();
+    </script>
+</body>
+</html>
