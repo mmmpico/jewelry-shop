@@ -2,25 +2,31 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>DeStashe Hub - V52 Final Master</title>
-    <link rel="icon" href="data:,">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <title>DeStashe Hub - V53 Native</title>
     <style>
         :root { --slate: #1e293b; --gold: #d4af37; --bg: #f8fafc; --border: #e2e8f0; }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #334155; margin: 0; padding: 20px; }
+        
+        /* AUTH BOX */
         .auth-card { max-width: 400px; margin: 80px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; border: 1px solid var(--border); }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; }
+        
+        /* APP LAYOUT */
         .container { max-width: 1400px; margin: auto; display: none; }
         .nav-bar { background: var(--slate); color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
         .scan-input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 6px; width: 300px; outline: none; }
+        
         .card { background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; overflow: hidden; }
         .header { background: #f1f5f9; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 20px; }
+        
         label { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; display: block; }
-        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; background: #fff; }
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; }
+        
         .btn-main { background: var(--slate); color: white; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; text-transform: uppercase; }
         .btn-sm { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-size: 10px; font-weight: 700; }
-        .item-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; transition: background 0.4s; }
+        
+        .item-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
         .badge-set { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10px; }
         .badge-bag { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10px; }
     </style>
@@ -28,10 +34,10 @@
 <body>
 
     <div id="authBox" class="auth-card">
-        <h2 style="color:var(--gold); margin-bottom: 20px;">DeStashe Admin</h2>
-        <input type="email" id="email" placeholder="Email Address">
-        <input type="password" id="pass" placeholder="Password" style="margin-top:10px; margin-bottom:20px; width:100%; padding:10px; border-radius:6px; border:1px solid #ddd;">
-        <button class="btn-main" onclick="window.doLogin()">Access Command Center</button>
+        <h2 style="color:var(--gold)">DeStashe Admin</h2>
+        <input type="email" id="email" class="auth-input" placeholder="Email Address">
+        <input type="password" id="pass" class="auth-input" placeholder="Password">
+        <button class="btn-main" onclick="handleLogin()">Sign In</button>
     </div>
 
     <div class="container" id="mainApp">
@@ -39,9 +45,9 @@
             <div style="display:flex; align-items:center; gap:15px;">
                 <strong>SCANNER MODE</strong>
                 <input type="checkbox" id="scannerToggle">
-                <input type="text" id="globalSearch" placeholder="Zap QR or Search SKU..." class="scan-input">
+                <input type="text" id="globalSearch" placeholder="Zap SKU..." class="scan-input">
             </div>
-            <button onclick="window.doLogout()" style="color:white; background:none; border:none; cursor:pointer; font-weight:bold; text-decoration: underline;">Log Out</button>
+            <button onclick="handleLogout()" style="color:white; background:none; border:none; cursor:pointer; font-weight:bold; text-decoration: underline;">Log Out</button>
         </div>
 
         <div class="card">
@@ -57,88 +63,7 @@
                 <div><label>Rarity</label><select id="iRare">
                     <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Ultra Rare Unicorn</option><option>Bella</option><option>Lillian</option><option>Diamond</option>
                 </select></div>
-                <div><label>Stone</label><input type="text" id="iStone" placeholder="Stone type"></div>
                 <div><label>Set Pieces</label><input type="number" id="iSet" value="1"></div>
                 <div><label>CostPrice</label><input type="number" id="iCost" step="0.01"></div>
                 <div><label>ListedPrice (MSRP) *</label><input type="number" id="iMSRP" step="0.01" required></div>
-                <div style="grid-column: span 2;"><button type="button" class="btn-main" onclick="window.doSave()">Save to Vault</button></div>
-            </form>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="card"><div class="header">2. Claimed (Unpaid)</div><div id="list-P"></div></div>
-            <div class="card"><div class="header">3. Paid (Ready to Ship)</div><div id="list-S"></div></div>
-            <div class="card" style="grid-column: span 2;"><div class="header">4. Available Merchandise Vault</div><div id="list-A"></div></div>
-        </div>
-    </div>
-
-    <script>
-        const SB_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
-        const SB_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-        const COLLECTIONS = ["Originals 2024", "Originals 2025", "Originals 2026", "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday", "April 2025 Birthday", "May 2025 Birthday", "June 2025 Birthday", "July 2025 Birthday", "August 2025 Birthday", "September 2025 Birthday", "October 2025 Birthday", "November 2025 Birthday", "December 2025 Birthday", "January 2026 Birthday", "February 2026 Birthday", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club", "Elevated Elegance"];
-        
-        let _sb;
-
-        // 2. BOOTSTRAP TO ENSURE SIGN-IN ALWAYS WORKS
-        function init() {
-            if (typeof supabase === 'undefined') {
-                setTimeout(init, 300);
-                return;
-            }
-            _sb = supabase.createClient(SB_URL, SB_KEY);
-            _sb.auth.onAuthStateChange((event, session) => {
-                if (session) {
-                    document.getElementById('authBox').style.display = 'none';
-                    document.getElementById('mainApp').style.display = 'block';
-                    document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
-                    window.refresh();
-                } else {
-                    document.getElementById('authBox').style.display = 'block';
-                    document.getElementById('mainApp').style.display = 'none';
-                }
-            });
-        }
-
-        window.doLogin = async function() {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('pass').value;
-            const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
-            if (error) alert("Login Error: " + error.message);
-        };
-
-        window.doLogout = async function() { await _sb.auth.signOut(); location.reload(); };
-
-        window.doSave = async function() {
-            const { data: { user } } = await _sb.auth.getUser();
-            const { error } = await _sb.from('InventoryHistory').insert([{
-                ItemName: document.getElementById('iName').value, BrandSku: document.getElementById('iSku').value,
-                ItemCategory: document.getElementById('iCat').value, Collection: document.getElementById('iCol').value,
-                Plating: document.getElementById('iPlat').value, Rarity: document.getElementById('iRare').value,
-                Stone: document.getElementById('iStone').value, SetCount: parseInt(document.getElementById('iSet').value) || 1,
-                CostPrice: parseFloat(document.getElementById('iCost').value) || 0, ListedPrice: parseFloat(document.getElementById('iMSRP').value) || 0,
-                Status: 'Available', user_id: user.id, creator_handle: 'destashe'
-            }]);
-            if (error) alert(error.message); else { document.getElementById('iForm').reset(); window.refresh(); }
-        };
-
-        window.refresh = async function() {
-            const { data: { user } } = await _sb.auth.getUser();
-            const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('Status','Closed').order('CreatedAt', { ascending: false });
-            
-            const divP = document.getElementById('list-P'), divS = document.getElementById('list-S'), divA = document.getElementById('list-A');
-            divP.innerHTML = ""; divS.innerHTML = ""; divA.innerHTML = "";
-
-            data.forEach(item => {
-                const isPaid = (item.Status === 'Pending' && item.PaymentReceived === true);
-                const html = `<div class="item-row" id="sku-${item.BrandSku}">
-                    <div style="flex:1">
-                        <strong>${item.ItemName}</strong> ${item.SetCount > 1 ? `<span class="badge-set">SET: ${item.SetCount}</span>` : ''} <br>
-                        <small>${item.BrandSku || 'NO SKU'} | ${item.Collection} | MSRP: $${item.ListedPrice}</small>
-                    </div>
-                    ${item.Status === 'Pending' ? `<div class="badge-bag">Bag ${item.BagNumber}</div><div style="font-size:10px; margin:0 10px;">@${item.ClaimedBy}</div>` : ''}
-                    <div style="display:flex; gap:5px;">
-                        ${item.Status === 'Available' ? `<button class="btn-sm" onclick="act('${item.id}', 'claim')">Claim</button>` : ''}
-                        ${item.Status === 'Pending' && !item.PaymentReceived ? `<button class="btn-sm" onclick="act('${item.id}', 'paid')">Paid?</button>` : ''}
-                        ${item.Status === 'Pending' && item.PaymentReceived ? `<button class="btn-sm" onclick="act('${item.id}', 'ship')">Ship</button>` : ''}
-                        <button class="btn-sm" style="color:red; border:none;" onclick="act('${item.id}', 'del')">×</button>
-                    </div>
+                <div style="grid-column: span 2;">
