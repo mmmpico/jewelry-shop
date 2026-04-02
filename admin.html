@@ -2,14 +2,11 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>DeStashe Hub - V54 Ironclad</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+    <title>DeStashe Hub - V55 Direct-Feed</title>
     <style>
         :root { --slate: #1e293b; --gold: #d4af37; --bg: #f8fafc; --border: #e2e8f0; }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #334155; margin: 0; padding: 20px; }
-        #status-msg { text-align: center; margin-top: 50px; font-weight: bold; color: var(--gold); }
-        .auth-card { max-width: 400px; margin: 50px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; border: 1px solid var(--border); display: none; }
+        .auth-card { max-width: 400px; margin: 80px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; border: 1px solid var(--border); }
         .container { max-width: 1400px; margin: auto; display: none; }
         .nav-bar { background: var(--slate); color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
         .scan-input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 6px; width: 300px; outline: none; }
@@ -20,20 +17,18 @@
         input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; background: #fff; }
         .btn-main { background: var(--slate); color: white; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; text-transform: uppercase; }
         .btn-sm { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-size: 10px; font-weight: 700; }
-        .item-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; transition: background 0.4s; }
+        .item-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
         .badge-set { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10px; }
         .badge-bag { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-weight: 800; font-size: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="status-msg">Establishing Secure Connection...</div>
-
     <div id="authBox" class="auth-card">
         <h2 style="color:var(--gold)">DeStashe Admin</h2>
-        <input type="email" id="email" placeholder="Email Address" style="width:100%; padding:10px; margin-bottom:10px;">
-        <input type="password" id="pass" placeholder="Password" style="width:100%; padding:10px; margin-bottom:15px;">
-        <button class="btn-main" onclick="window.doLogin()">Sign In</button>
+        <input type="email" id="email" placeholder="Email" style="width:100%; padding:12px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+        <input type="password" id="pass" placeholder="Password" style="width:100%; padding:12px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd;">
+        <button class="btn-main" onclick="doLogin()">Sign In</button>
     </div>
 
     <div class="container" id="mainApp">
@@ -43,7 +38,7 @@
                 <input type="checkbox" id="scannerToggle">
                 <input type="text" id="globalSearch" placeholder="Zap SKU..." class="scan-input">
             </div>
-            <button onclick="window.doLogout()" style="color:white; background:none; border:none; cursor:pointer; font-weight:bold; text-decoration:underline;">Log Out</button>
+            <button onclick="doLogout()" style="color:white; background:none; border:none; cursor:pointer; font-weight:bold;">Log Out</button>
         </div>
 
         <div class="card">
@@ -59,14 +54,82 @@
                 <div><label>Rarity</label><select id="iRare">
                     <option>Collection Piece</option><option>Unicorn</option><option>Rare Unicorn</option><option>Ultra Rare Unicorn</option><option>Bella</option><option>Lillian</option><option>Diamond</option>
                 </select></div>
-                <div><label>Stone</label><input type="text" id="iStone"></div>
                 <div><label>Set Pieces</label><input type="number" id="iSet" value="1"></div>
                 <div><label>CostPrice</label><input type="number" id="iCost" step="0.01"></div>
                 <div><label>ListedPrice (MSRP) *</label><input type="number" id="iMSRP" step="0.01" required></div>
-                <div style="grid-column: span 2;"><button type="button" class="btn-main" onclick="window.doSave()">Save to Vault</button></div>
+                <div style="grid-column: span 2;"><button type="button" class="btn-main" onclick="doSave()">+ Save to Vault</button></div>
             </form>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card"><div class="header">2. Claimed (Unpaid)</div><div id="list-P"></div></div>
-            <div class="card"><div
+            <div class="card"><div class="header">3. Paid (Ready to Ship)</div><div id="list-S"></div></div>
+            <div class="card" style="grid-column: span 2;"><div class="header">4. Available Merchandise Vault</div><div id="list-A"></div></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE = 'https://fnlgermttuaibfvmbite.supabase.co';
+        const KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
+        const COLLECTIONS = ["Originals 2024", "Originals 2025", "Originals 2026", "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday", "April 2025 Birthday", "May 2025 Birthday", "June 2025 Birthday", "July 2025 Birthday", "August 2025 Birthday", "September 2025 Birthday", "October 2025 Birthday", "November 2025 Birthday", "December 2025 Birthday", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club"];
+
+        async function doLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('pass').value;
+            const res = await fetch(`${BASE}/auth/v1/token?grant_type=password`, {
+                method: 'POST', headers: { 'apikey': KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if (data.access_token) {
+                localStorage.setItem('sb-token', data.access_token);
+                localStorage.setItem('sb-user', data.user.id);
+                location.reload();
+            } else { alert("Login Failed: Check Credentials"); }
+        }
+
+        function doLogout() { localStorage.clear(); location.reload(); }
+
+        async function api(path, method = 'GET', body = null) {
+            const options = {
+                method,
+                headers: { 
+                    'apikey': KEY, 
+                    'Authorization': `Bearer ${localStorage.getItem('sb-token')}`, 
+                    'Content-Type': 'application/json', 
+                    'Prefer': 'return=representation' 
+                }
+            };
+            if (body) options.body = JSON.stringify(body);
+            const res = await fetch(`${BASE}/rest/v1/${path}`, options);
+            return res.json();
+        }
+
+        async function doSave() {
+            const body = {
+                ItemName: document.getElementById('iName').value, BrandSku: document.getElementById('iSku').value,
+                ItemCategory: document.getElementById('iCat').value, Collection: document.getElementById('iCol').value,
+                Plating: document.getElementById('iPlat').value, Rarity: document.getElementById('iRare').value,
+                SetCount: parseInt(document.getElementById('iSet').value) || 1,
+                CostPrice: parseFloat(document.getElementById('iCost').value) || 0,
+                ListedPrice: parseFloat(document.getElementById('iMSRP').value) || 0,
+                Status: 'Available', user_id: localStorage.getItem('sb-user')
+            };
+            await api('InventoryHistory', 'POST', body);
+            document.getElementById('iForm').reset();
+            refresh();
+        }
+
+        async function refresh() {
+            const data = await api(`InventoryHistory?user_id=eq.${localStorage.getItem('sb-user')}&Status=neq.Closed&ItemName=neq.SYSTEM_STORE_STATUS&order=CreatedAt.desc`);
+            const divP = document.getElementById('list-P'), divS = document.getElementById('list-S'), divA = document.getElementById('list-A');
+            divP.innerHTML = ""; divS.innerHTML = ""; divA.innerHTML = "";
+
+            data.forEach(item => {
+                const isPaid = (item.Status === 'Pending' && item.PaymentReceived === true);
+                const html = `<div class="item-row" id="sku-${item.BrandSku}">
+                    <div style="flex:1">
+                        <strong>${item.ItemName}</strong> ${item.SetCount > 1 ? `<span class="badge-set">SET: ${item.SetCount}</span>` : ''} <br>
+                        <small>${item.BrandSku || 'NO SKU'} | ${item.Collection} | MSRP: $${item.ListedPrice}</small>
+                    </div>
+                    ${item.
