@@ -144,4 +144,23 @@
                 const h = prompt("Buyer Social:"), b = prompt("Bag #:");
                 if (h && b) update = { Status: 'Pending', ClaimedBy: h, BagNumber: b, PaymentReceived: false };
             } else if (type === 'paid') {
-                const p = prompt("Final Sale
+                const p = prompt("Final Sale Price:");
+                if (p) update = { PaymentReceived: true, SalePrice: parseFloat(p) };
+            } else if (type === 'ship') {
+                const t = prompt("Tracking #:");
+                if (t) update = { Status: 'Shipped', TrackingNumber: t };
+            } else if (type === 'del') {
+                if (confirm("Delete?")) { await api(`InventoryHistory?id=eq.${id}`, 'DELETE'); return refreshData(); }
+            }
+            if (Object.keys(update).length > 0) { await api(`InventoryHistory?id=eq.${id}`, 'PATCH', update); refreshData(); }
+        }
+
+        if (localStorage.getItem('ds_token')) {
+            document.getElementById('authBox').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
+            refreshData();
+        }
+    </script>
+</body>
+</html>
