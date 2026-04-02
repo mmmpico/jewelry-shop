@@ -2,21 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>DeStashe Hub - V57 Master</title>
+    <title>DeStashe Command Center - V58</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         :root { --slate: #1e293b; --gold: #d4af37; --bg: #f8fafc; --border: #e2e8f0; }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #334155; margin: 0; padding: 20px; }
+        
+        /* AUTH BOX */
         .auth-card { max-width: 400px; margin: 80px auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; border: 1px solid var(--border); }
         .container { max-width: 1400px; margin: auto; display: none; }
+        
+        /* NAV & SCANNER */
         .nav-bar { background: var(--slate); color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
         .scan-input { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px; border-radius: 6px; width: 300px; outline: none; }
+        .scan-input:focus { background: white; color: black; }
+
+        /* CARDS */
         .card { background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; overflow: hidden; }
-        .header { background: #f1f5f9; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 20px; }
+        .header { background: #f1f5f9; padding: 12px 20px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; display: flex; justify-content: space-between; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; padding: 20px; }
+        
         label { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; display: block; }
-        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; background: #fff; }
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; }
+        
         .btn-main { background: var(--slate); color: white; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; width: 100%; text-transform: uppercase; }
         .btn-sm { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; font-size: 10px; font-weight: 700; }
         .item-row { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
@@ -26,9 +35,9 @@
 <body>
 
     <div id="authBox" class="auth-card">
-        <h2 style="color:var(--gold)">DeStashe Admin</h2>
-        <input type="email" id="email" placeholder="Email Address" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; margin-bottom:10px;">
-        <input type="password" id="pass" placeholder="Password" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; margin-bottom:15px;">
+        <h2 style="color:var(--gold)">DeStashe Hub</h2>
+        <input type="email" id="email" placeholder="Email" style="width:100%; padding:10px; margin-bottom:10px; border-radius:8px; border:1px solid #ddd;">
+        <input type="password" id="pass" placeholder="Password" style="width:100%; padding:12px; margin-bottom:15px; border-radius:8px; border:1px solid #ddd;">
         <button class="btn-main" id="loginBtn">Sign In</button>
     </div>
 
@@ -37,7 +46,7 @@
             <div style="display:flex; align-items:center; gap:15px;">
                 <strong>SCANNER MODE</strong>
                 <input type="checkbox" id="scannerToggle">
-                <input type="text" id="globalSearch" placeholder="Zap SKU..." class="scan-input">
+                <input type="text" id="globalSearch" placeholder="Zap SKU or Search..." class="scan-input">
             </div>
             <button onclick="window.doLogout()" style="color:white; background:none; border:none; cursor:pointer; font-weight:bold;">Log Out</button>
         </div>
@@ -46,7 +55,7 @@
             <div class="header">1. New Inventory Intake</div>
             <form id="iForm" class="form-grid">
                 <div style="grid-column: span 2;"><label>Item Name *</label><input type="text" id="iName" required></div>
-                <div><label>Brand SKU</label><input type="text" id="iSku"></div>
+                <div><label>Brand SKU</label><input type="text" id="iSku" placeholder="BP-000"></div>
                 <div><label>Category</label><select id="iCat">
                     <option>Ring</option><option>Necklace</option><option>Earrings</option><option>Bracelet</option><option>Stacks</option><option>Necklace Set</option><option>Earring Set</option><option>Set (Mixed)</option><option>Stacks (Mixed)</option>
                 </select></div>
@@ -65,46 +74,51 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="card"><div class="header">2. Claimed (Unpaid)</div><div id="list-P"></div></div>
             <div class="card"><div class="header">3. Paid (Ready to Ship)</div><div id="list-S"></div></div>
-            <div class="card" style="grid-column: span 2;"><div class="header">4. Available Merchandise Vault</div><div id="list-A"></div></div>
+            <div class="card" style="grid-column: span 2;"><div class="header">4. Merchandise Vault</div><div id="list-A"></div></div>
         </div>
     </div>
 
     <script>
         const SB_URL = 'https://fnlgermttuaibfvmbite.supabase.co';
         const SB_KEY = 'sb_publishable_YjZlmPXMzp2frMHVVtpfAQ_Im7YknVc';
-        const COLLECTIONS = ["Originals 2024", "Originals 2025", "Originals 2026", "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday", "April 2025 Birthday", "May 2025 Birthday", "June 2025 Birthday", "July 2025 Birthday", "August 2025 Birthday", "September 2025 Birthday", "October 2025 Birthday", "November 2025 Birthday", "December 2025 Birthday", "January 2026 Birthday", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club", "Elevated Elegance"];
+        
+        const COLLECTIONS = [
+            "Originals 2024", "Originals 2025", "Originals 2026",
+            "January 2025 Birthday", "February 2025 Birthday", "March 2025 Birthday", "April 2025 Birthday", "May 2025 Birthday", "June 2025 Birthday", "July 2025 Birthday", "August 2025 Birthday", "September 2025 Birthday", "October 2025 Birthday", "November 2025 Birthday", "December 2025 Birthday",
+            "January 2026 Birthday", "February 2026 Birthday", "Spring Stacks", "Summer Stacks", "Fall Stacks", "Wicked", "Holiday Stacks", "Sterling Club", "Elevated Elegance"
+        ];
 
         let _sb;
 
-        // 1. FAIL-SAFE INITIALIZATION
         window.onload = function() {
             if (typeof supabase !== 'undefined') {
                 _sb = supabase.createClient(SB_URL, SB_KEY);
-                checkSession();
-            } else {
-                alert("Critical Error: Database library blocked by browser.");
-            }
+                // PERSISTENT AUTH HANDLER
+                _sb.auth.onAuthStateChange((event, session) => {
+                    if (session) showApp();
+                    else showAuth();
+                });
+            } else { alert("Library Blocked. Check Internet."); }
         };
 
-        async function checkSession() {
-            const { data: { session } } = await _sb.auth.getSession();
-            if (session) showApp();
+        async function showAuth() {
+            document.getElementById('authBox').style.display = 'block';
+            document.getElementById('mainApp').style.display = 'none';
         }
 
-        document.getElementById('loginBtn').addEventListener('click', async () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('pass').value;
-            const { data, error } = await _sb.auth.signInWithPassword({ email, password });
-            if (error) alert(error.message);
-            else if (data.session) showApp();
-        });
-
-        function showApp() {
+        async function showApp() {
             document.getElementById('authBox').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             document.getElementById('cols').innerHTML = COLLECTIONS.map(c => `<option value="${c}">`).join('');
-            window.doRefresh();
+            window.refresh();
         }
+
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('pass').value;
+            const { error } = await _sb.auth.signInWithPassword({ email: e, password: p });
+            if (error) alert(error.message);
+        });
 
         window.doLogout = async () => { await _sb.auth.signOut(); location.reload(); };
 
@@ -119,10 +133,10 @@
                 ListedPrice: parseFloat(document.getElementById('iMSRP').value) || 0,
                 Status: 'Available', user_id: user.id
             }]);
-            if (!error) { document.getElementById('iForm').reset(); window.doRefresh(); }
+            if (!error) { document.getElementById('iForm').reset(); window.refresh(); }
         };
 
-        window.doRefresh = async () => {
+        window.refresh = async () => {
             const { data: { user } } = await _sb.auth.getUser();
             const { data } = await _sb.from('InventoryHistory').select('*').eq('user_id', user.id).neq('Status','Closed').order('CreatedAt', { ascending: false });
             
@@ -137,4 +151,55 @@
                         <small>${item.BrandSku || 'NO SKU'} | ${item.Collection} | MSRP: $${item.ListedPrice}</small>
                     </div>
                     ${item.Status === 'Pending' ? `<div style="font-size:10px; margin:0 10px;">Bag ${item.BagNumber} | @${item.ClaimedBy}</div>` : ''}
-                    <div style="display:flex; gap:5
+                    <div style="display:flex; gap:5px;">
+                        ${item.Status === 'Available' ? `<button class="btn-sm" onclick="act('${item.id}', 'claim')">Claim</button>` : ''}
+                        ${item.Status === 'Available' ? `<button class="btn-sm" onclick="act('${item.id}', 'edit')">Edit</button>` : ''}
+                        ${item.Status === 'Pending' && !item.PaymentReceived ? `<button class="btn-sm" onclick="act('${item.id}', 'paid')">Paid?</button>` : ''}
+                        ${item.Status === 'Pending' && item.PaymentReceived ? `<button class="btn-sm" onclick="act('${item.id}', 'ship')">Ship</button>` : ''}
+                        <button class="btn-sm" style="color:red; border:none;" onclick="act('${item.id}', 'del')">×</button>
+                    </div>
+                </div>`;
+                if (item.Status === 'Available') divA.innerHTML += html;
+                else if (isPaid) divS.innerHTML += html;
+                else divP.innerHTML += html;
+            });
+        };
+
+        async function act(id, type) {
+            let update = {};
+            if (type === 'claim') {
+                const h = prompt("Buyer Social:"), b = prompt("Bag #:");
+                if (h && b) update = { Status: 'Pending', ClaimedBy: h, BagNumber: b, PaymentReceived: false };
+            } else if (type === 'edit') {
+                const n = prompt("New Item Name:");
+                const s = prompt("New SKU:");
+                if (n && s) update = { ItemName: n, BrandSku: s };
+            } else if (type === 'paid') {
+                const p = prompt("Final Sale Price:");
+                if (p) update = { PaymentReceived: true, SalePrice: parseFloat(p) };
+            } else if (type === 'ship') {
+                const t = prompt("Tracking #:");
+                if (t) update = { Status: 'Shipped', TrackingNumber: t };
+            } else if (type === 'del') {
+                if (confirm("Delete?")) { await _sb.from('InventoryHistory').delete().eq('id', id); window.refresh(); return; }
+            }
+            if (Object.keys(update).length > 0) {
+                await _sb.from('InventoryHistory').update(update).eq('id', id);
+                window.refresh();
+            }
+        }
+
+        // SCANNER LISTENER
+        document.getElementById('globalSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && document.getElementById('scannerToggle').checked) {
+                const target = document.getElementById(`sku-${this.value}`);
+                if (target) {
+                    target.style.background = "#fff9c4";
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                this.value = "";
+            }
+        });
+    </script>
+</body>
+</html>
